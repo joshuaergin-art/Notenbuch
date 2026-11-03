@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Notenbuch Deutsch</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--pri:#1e40af;--pri2:#dbeafe;--warn:#b45309;--warnbg:#fef3c7;--ok:#047857;--okbg:#d1fae5;--bad:#b91c1c;--badbg:#fee2e2}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+.top{position:sticky;top:0;z-index:5;background:#1e3a8a;color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.top .muted{color:#c7d2fe;font-size:12px}
+main{padding:12px 12px 96px;max-width:760px;margin:0 auto}
+main.wide{max-width:none}
+.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+.tabs button{flex:1;border:0;border-radius:0;background:none;padding:8px 0 6px;font-size:20px;display:flex;flex-direction:column;align-items:center;color:var(--muted)}
+.tabs button span{font-size:11px;margin-top:2px}
+.tabs button.on{color:var(--pri);font-weight:600;background:#eef2ff}
+.card{background:var(--card);border-radius:12px;padding:12px;margin:0 0 10px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+h2{font-size:18px;margin:4px 0 10px}
+h3{font-size:13px;margin:18px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.row{display:flex;align-items:center;gap:8px}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted)} .small{font-size:13px}
+button,.btn{font:inherit;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;color:var(--ink);cursor:pointer}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.sm{padding:5px 10px;font-size:14px}
+.btn.danger{color:var(--bad);border-color:#fecaca}
+input,select,textarea{font:inherit;border:1px solid #d1d5db;border-radius:8px;padding:7px 9px;background:#fff;color:var(--ink);max-width:100%}
+textarea{width:100%;min-height:180px;font-size:15px}
+.lesson{display:flex;align-items:center;gap:10px;cursor:pointer}
+.per{width:46px;height:46px;flex:none;border-radius:10px;background:var(--pri2);color:var(--pri);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--line);color:var(--ink);white-space:nowrap}
+.badge.ok{background:var(--okbg);color:var(--ok)} .badge.warn{background:var(--warnbg);color:var(--warn)}
+.banner{background:var(--warnbg);color:#78350f;border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.banner.ok{background:var(--okbg);color:#065f46}
+.slist .st{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.slist .st:last-child{border-bottom:0}
+.nr{width:22px;flex:none;color:var(--muted);font-size:13px;text-align:right}
+.sub{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.chip{min-width:52px;height:42px;border-radius:10px;border:1px dashed #cbd5e1;background:#fff;font-weight:700;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0 8px;color:var(--muted)}
+.chip.has{border-style:solid;color:inherit}
+.g1{background:#d1fae5!important;border-color:#6ee7b7!important;color:#065f46!important}
+.g2{background:#e0f2fe!important;border-color:#7dd3fc!important;color:#075985!important}
+.g3{background:#fef9c3!important;border-color:#fde047!important;color:#713f12!important}
+.g4{background:#ffedd5!important;border-color:#fdba74!important;color:#7c2d12!important}
+.g5{background:#fee2e2!important;border-color:#fca5a5!important;color:#7f1d1d!important}
+.hw{width:48px;height:42px;flex:none;border-radius:10px;font-size:13px;padding:0;color:var(--muted)}
+.hw.y{background:var(--okbg);border-color:#6ee7b7;color:var(--ok);font-size:20px}
+.hw.n{background:var(--badbg);border-color:#fca5a5;color:var(--bad);font-size:20px}
+.sheet-wrap{position:fixed;inset:0;z-index:20}
+.hidden{display:none}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:#fff;border-radius:16px 16px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom));max-width:760px;margin:0 auto}
+.ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 6px}
+.ggrid button{height:54px;font-size:21px;font-weight:700}
+.ggrid button.cur{outline:3px solid var(--pri);outline-offset:1px}
+.tbl-wrap{overflow:auto;background:#fff;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.06);max-height:calc(100vh - 230px)}
+table.ov{border-collapse:separate;border-spacing:0;font-size:14px;white-space:nowrap}
+table.ov th,table.ov td{padding:5px 8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center}
+table.ov thead th{position:sticky;top:0;background:#f8fafc;z-index:2;font-size:12px;font-weight:600}
+table.ov thead tr.hj th{font-size:12px;background:#e0e7ff;color:#3730a3}
+table.ov thead tr:nth-child(2) th{top:26px}
+table.ov .nm{position:sticky;left:0;background:#fff;text-align:left;z-index:1;font-weight:600;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+table.ov thead .nm{z-index:3;background:#f8fafc}
+table.ov td.calc{background:#f9fafb;color:#374151}
+table.ov td.res{background:#ecfdf5}
+table.ov tbody tr{cursor:pointer}
+table.ov tbody tr:hover td{background:#eef2ff}
+table.ov tr.avg td{background:#f1f5f9!important;font-weight:600;cursor:default}
+.pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px}
+.pills button{white-space:nowrap;border-radius:99px}
+.pills button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.ttgrid{border-collapse:collapse;margin-top:6px}
+.ttgrid td,.ttgrid th{border:1px solid var(--line);width:46px;height:34px;text-align:center;font-size:12px;padding:0}
+.ttgrid td{cursor:pointer}
+.ttgrid td.on{background:var(--pri);color:#fff;font-weight:700}
+.ttgrid td.other{color:var(--muted);background:#f9fafb}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field>label{font-size:13px;color:var(--muted)}
+.qgrid{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 8px;align-items:center}
+.qgrid input{width:100%}
+.dl{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.dl span{font-size:13px;background:#f3f4f6;border-radius:6px;padding:2px 6px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:10px;z-index:30;font-size:14px;display:flex;align-items:center;gap:12px;max-width:92vw;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.toast-undo{background:none;border:0;color:#93c5fd;font-weight:700;padding:4px 2px;font-size:14px;white-space:nowrap}
+p.help{font-size:13px;color:var(--muted);margin:6px 0 10px}
+.day{margin-bottom:4px}
+.dayhead{position:sticky;top:var(--toph,44px);z-index:3;background:var(--bg);display:flex;align-items:center;gap:8px;padding:10px 2px 6px;font-size:15px}
+.dayhead .btn{padding:2px 10px;font-size:16px;line-height:1.4}
+.day.today{border-left:4px solid var(--pri);padding-left:8px;margin-left:-12px}
+.day.today .dayhead b{color:var(--pri)}
+.day.past .card.lesson{opacity:.85}
+.dayhol{background:#ecfeff;color:#155e75;border-radius:10px;padding:8px 12px;margin:8px 0 10px;font-size:14px}
+.weeksep{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 2px}
+.weeksep::after{content:'';flex:1;border-top:1px solid #d1d5db}
+.ag-more{text-align:center;padding:14px;font-size:13px;color:var(--muted)}
+.banner.bad{background:#fee2e2;color:#7f1d1d}
+pre.preview{white-space:pre-wrap;background:#f3f4f6;border-radius:8px;padding:8px;font-size:12px;max-height:40vh;overflow:auto}
+
+/* ---------- Dunkelmodus ---------- */
+html.dark{--bg:#0b1220;--card:#162032;--ink:#e5e7eb;--muted:#94a3b8;--line:#2a3a52;--pri:#60a5fa;--pri2:#1e3a5f;--okbg:#06331f;--ok:#6ee7b7;--warnbg:#3a2a06;--warn:#fcd34d;--badbg:#3f1010;--bad:#fca5a5;color-scheme:dark}
+html.dark .top{background:#0f1b38}
+html.dark button,html.dark .btn,html.dark input,html.dark select,html.dark textarea{background:#1c2940;color:var(--ink);border-color:#34465f}
+html.dark .btn.pri,html.dark .pills button.on{background:#2563eb;border-color:#2563eb;color:#fff}
+html.dark .btn.danger{color:#fca5a5;border-color:#7f1d1d}
+html.dark .tabs{background:#101a2c;border-color:var(--line)}
+html.dark .tabs button{background:none}
+html.dark .tabs button.on{background:#1c2940;color:#93c5fd}
+html.dark .card{box-shadow:none;border:1px solid var(--line)}
+html.dark .banner{background:#3a2a06;color:#fde68a}
+html.dark .banner.ok{background:#06331f;color:#86efac}
+html.dark .banner.bad{background:#3f1010;color:#fecaca}
+html.dark .sheet{background:var(--card)}
+html.dark .chip{background:#1c2940;border-color:#475569}
+html.dark .g1{background:#064e3b!important;border-color:#10b981!important;color:#d1fae5!important}
+html.dark .g2{background:#0c3b5a!important;border-color:#38bdf8!important;color:#e0f2fe!important}
+html.dark .g3{background:#4a3c07!important;border-color:#eab308!important;color:#fef9c3!important}
+html.dark .g4{background:#5a2a0a!important;border-color:#f97316!important;color:#ffedd5!important}
+html.dark .g5{background:#5c1515!important;border-color:#ef4444!important;color:#fee2e2!important}
+html.dark .smb{filter:grayscale(.4);opacity:.85}
+html.dark .smb.on{filter:none;opacity:1}
+html.dark .ic.on-abs{background:#5c1515;border-color:#ef4444}
+html.dark .ic.on-mat{background:#5a2a0a;border-color:#f97316}
+html.dark .ic.on-note{background:#27306b;border-color:#818cf8}
+html.dark .ic.on-late{background:#4a3c07;border-color:#eab308}
+html.dark .notetxt{background:#1e2a55}
+html.dark .tbl-wrap{background:var(--card);box-shadow:none;border:1px solid var(--line)}
+html.dark table.ov thead th,html.dark table.ov thead .nm{background:#1c2940}
+html.dark table.ov thead tr.hj th{background:#1e2a55;color:#c7d2fe}
+html.dark table.ov .nm{background:var(--card)}
+html.dark table.ov td.calc{background:#18243a;color:var(--ink)}
+html.dark table.ov td.res{background:#0d2e22}
+html.dark table.ov tr.avg td{background:#1c2940!important}
+html.dark table.ov tbody tr:hover td{background:#1e2a55}
+html.dark .ttgrid td.other{background:#131d2f}
+html.dark .ttgrid td.on{background:#2563eb}
+html.dark .dl span{background:#1c2940}
+html.dark .dayhol{background:#0b2f3a;color:#a5f3fc}
+html.dark pre.preview{background:#1c2940}
+html.dark .badge{background:#2a3a52;color:var(--ink)}
+html.dark .badge.ok{background:#06331f;color:#86efac}
+html.dark .badge.warn{background:#3a2a06;color:#fcd34d}
+html.dark .weeksep::after{border-color:#2a3a52}
+.st2{padding:8px 0 10px;border-bottom:1px solid var(--line)}
+.st2:last-child{border-bottom:0}
+.st2.abs{opacity:.75}
+.ic.on-late{background:#fef9c3;border-color:#facc15}
+#lock{position:fixed;inset:0;z-index:50;background:#1e3a8a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#lock.hidden{display:none}
+#lock .dots{display:flex;gap:14px}
+#lock .dots i{width:16px;height:16px;border-radius:50%;border:2px solid #fff}
+#lock .dots i.f{background:#fff}
+#lock .pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px}
+#lock .pad button{height:72px;border-radius:50%;font-size:26px;background:rgba(255,255,255,.14);color:#fff;border:0}
+#lock .msg{min-height:20px;color:#fecaca;font-size:14px;text-align:center}
+.pick-name{font-size:30px;font-weight:800;text-align:center;margin:10px 0 2px}
+.warn-item{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer}
+#print{display:none}
+@media print{
+  html,body{background:#fff!important}
+  body>*:not(#print){display:none!important}
+  #print{display:block;color:#000;font:11pt/1.35 Arial,sans-serif}
+  .rep{page-break-after:always;break-after:page}
+  .rep:last-child{page-break-after:auto;break-after:auto}
+  .rep h1{font-size:18pt;margin:0 0 2px}
+  .rep h2{font-size:12pt;margin:14px 0 4px}
+  .rep table{border-collapse:collapse;width:100%}
+  .rep td,.rep th{border:1px solid #888;padding:3px 6px;text-align:left;vertical-align:top}
+  .rep th{background:#eee}
+}
+.ic{width:46px;height:46px;flex:none;padding:0;border-radius:10px;font-size:18px;line-height:1;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ic span{font-size:9px;color:var(--muted)}
+.ic.on-abs{background:#fee2e2;border-color:#f87171}
+.ic.on-mat{background:#ffedd5;border-color:#fb923c}
+.ic.on-note{background:#e0e7ff;border-color:#818cf8}
+.smrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0 0 30px}
+.smb{height:50px;padding:0;font-size:26px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;filter:grayscale(.6);opacity:.75}
+.smb span{font-size:10px;font-weight:700;color:var(--muted)}
+.smb.on{filter:none;opacity:1;border-width:2px;transform:scale(1.04)}
+.notetxt{margin:6px 0 0 30px;font-size:13px;background:#eef2ff;border-radius:8px;padding:5px 8px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<header class="top"><div><b>Notenbuch Deutsch</b> <span id="year" class="muted"></span></div><div id="stand" class="muted"></div></header>
+<main id="main"></main>
+<nav class="tabs">
+  <button data-act="tab" data-t="heute">📅<span>Heute</span></button>
+  <button data-act="tab" data-t="uebersicht">📊<span>Übersicht</span></button>
+  <button data-act="tab" data-t="ka">📝<span>Arbeiten</span></button>
+  <button data-act="tab" data-t="einst">⚙️<span>Einstellungen</span></button>
+</nav>
+<div id="sheet" class="sheet-wrap hidden"><div class="backdrop" data-act="closesheet"></div><div class="sheet" id="sheetbody"></div></div>
+<div id="lock" class="hidden"></div>
+<div id="print"></div>
+<input type="file" id="importfile" accept=".json,.txt,application/json,text/plain" hidden>
+
+<script>
+'use strict';
+/* ================= Grundlagen ================= */
+const GRADES = ['1+','1','1-','2+','2','2-','3+','3','3-','4+','4','4-','5+','5','5-','6'];
+const QS = ['Q1','Q2','Q3','Q4'];
+// Smileys für die mündliche Tagesnote: Note 1 bis 5
+const SMILEYS = [['1','😀'],['2','🙂'],['3','😐'],['4','🙁'],['5','😣']];
+const smiley = g => (SMILEYS.find(s => s[0] === g) || [])[1] || '';
+const HJ = [{name:'1. Halbjahr', short:'HJ 1', qs:['Q1','Q2']}, {name:'2. Halbjahr', short:'HJ 2', qs:['Q3','Q4']}];
+const WD = ['','Mo','Di','Mi','Do','Fr','Sa','So'];
+const WDL = ['','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+// Unterrichtszeiten der Schule: Mo/Mi/Do 5 Stunden, Di/Fr 4 Stunden
+const LONG_DAY = [['08:40','09:40'],['10:00','11:00'],['11:15','12:15'],['13:00','14:00'],['14:05','15:05']];
+const SHORT_DAY = [['08:40','09:40'],['10:00','11:00'],['11:15','12:15'],['12:20','13:20']];
+const BELL = {1: LONG_DAY, 2: SHORT_DAY, 3: LONG_DAY, 4: LONG_DAY, 5: SHORT_DAY};
+const PERIODS = 5;
+const periodTime = (w, p) => (BELL[w] || [])[p - 1] || null;
+const timeStr = (w, p) => { const t = periodTime(w, p); return t ? t[0] + '–' + t[1] : ''; };
+const KEY = 'notenbuch-deutsch-v1';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const pts = g => { if (g == null || g === '') return null; const i = GRADES.indexOf(String(g)); return i < 0 ? null : 15 - i; };
+const rnd = x => Math.min(15, Math.max(0, Math.floor(x + 0.5 + 1e-9)));   // x,5 wird aufgerundet (wie Excel RUNDEN)
+const gradeOf = x => x == null ? '' : GRADES[15 - rnd(x)];
+const gcls = g => { const p = pts(g); if (p == null) return ''; return p >= 13 ? 'g1' : p >= 10 ? 'g2' : p >= 7 ? 'g3' : p >= 4 ? 'g4' : 'g5'; };
+const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const fmtN = (x, d = 1) => x == null ? '' : x.toFixed(d).replace('.', ',');
+const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 10); };
+const today = () => iso(new Date());
+const parseISO = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); };
+const wd = s => { const x = parseISO(s).getDay(); return x === 0 ? 7 : x; };
+const fmtD = s => { const d = parseISO(s); return WD[wd(s)] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+const fmtDL = s => s ? parseISO(s).toLocaleDateString('de-DE') : '';
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`; };
+const lk = (cid, d, p) => cid + '|' + d + '|' + p;
+
+/* ================= Daten ================= */
+function defaultExams() {
+  return [['KA 1','Q1'],['KA 2','Q2'],['KA 3','Q2'],['KA 4','Q3'],['KA 5','Q4'],['KA 6','Q4']]
+    .map(([t, q]) => ({id: uid(), title: t, quarter: q, date: '', weight: 1}));
+}
+function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, talk: {}}; }
+function defaults() {
+  return {
+    v: 1, updated: Date.now(), lastBackup: 0,
+    settings: {
+      year: '2026/27',
+      quarters: [
+        {id:'Q1', start:'2026-08-01', end:'2026-11-15'},
+        {id:'Q2', start:'2026-11-16', end:'2027-01-31'},
+        {id:'Q3', start:'2027-02-01', end:'2027-04-15'},
+        {id:'Q4', start:'2027-04-16', end:'2027-07-31'}],
+      holidays: [], oralWeight: 50, reminder: '16:00', remMode: 'after', remOffset: 15, warnMinGrades: 3, warnMat: 3, warnLate: 3, trackFrom: today()
+    },
+    classes: ['6b', '6d', '8 E-Kurs'].map(newClass),
+    lessons: {}, examGrades: {}
+  };
+}
+// Schulferien NRW laut Ferienordnung des Schulministeriums (Schuljahre 2026/27 und 2027/28)
+// und gesetzliche Feiertage an Schultagen. Bewegliche Ferientage legt jede Schule selbst fest.
+const NRW_FREE = [
+  ['2026-07-20', '2026-09-01', 'Sommerferien 2026'],
+  ['2026-10-17', '2026-10-31', 'Herbstferien'],
+  ['2026-12-23', '2027-01-06', 'Weihnachtsferien'],
+  ['2027-03-22', '2027-04-03', 'Osterferien'],
+  ['2027-05-06', '2027-05-06', 'Christi Himmelfahrt'],
+  ['2027-05-17', '2027-05-17', 'Pfingstmontag'],
+  ['2027-05-18', '2027-05-18', 'Pfingstferien (1 Tag)'],
+  ['2027-05-27', '2027-05-27', 'Fronleichnam'],
+  ['2027-07-19', '2027-08-31', 'Sommerferien 2027'],
+  ['2027-10-23', '2027-11-06', 'Herbstferien'],
+  ['2027-12-24', '2028-01-08', 'Weihnachtsferien'],
+  ['2028-04-10', '2028-04-22', 'Osterferien'],
+  ['2028-05-01', '2028-05-01', 'Tag der Arbeit'],
+  ['2028-05-25', '2028-05-25', 'Christi Himmelfahrt'],
+  ['2028-06-05', '2028-06-05', 'Pfingstmontag'],
+  ['2028-06-15', '2028-06-15', 'Fronleichnam'],
+];
+function addNrwHolidays(j, force) {
+  if (j.settings.nrwAdded && !force) return 0;
+  let n = 0;
+  for (const [start, end, name] of NRW_FREE)
+    if (!j.settings.holidays.some(h => h.start === start && h.end === end)) { j.settings.holidays.push({start, end, name}); n++; }
+  j.settings.holidays.sort((a, b) => (a.start || '') < (b.start || '') ? -1 : 1);
+  j.settings.nrwAdded = true;
+  return n;
+}
+function migrate(j) {
+  const d = defaults();
+  j.settings = Object.assign(d.settings, j.settings || {});
+  j.classes = j.classes || []; j.lessons = j.lessons || {}; j.examGrades = j.examGrades || {};
+  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.talk ||= {}; }
+  j.examMt ||= {}; j.deleted ||= {};
+  for (const k of ['lessons', 'exams', 'classes', 'students']) j.deleted[k] ||= {};
+  addNrwHolidays(j);
+  for (const L of Object.values(j.lessons)) { L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {}; }
+  return j;
+}
+function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v) return migrate(j); } catch (e) {} return migrate(defaults()); }
+let db = load();
+function save() { db.updated = Date.now(); localStorage.setItem(KEY, JSON.stringify(db)); }
+function saveQuiet() { localStorage.setItem(KEY, JSON.stringify(db)); }
+const hasData = () => Object.keys(db.lessons).length > 0 || Object.keys(db.examGrades).length > 0;
+
+const ui = {tab: 'heute', date: today(), agFrom: addDays(today(), -14), agTo: addDays(today(), 21), agScrollTo: today(), heuteY: null, lesson: null, cls: db.classes[0]?.id, examId: null, pick: null};
+const cls = id => db.classes.find(c => c.id === id);
+const curCls = () => cls(ui.cls) || db.classes[0];
+
+/* ================= Kalender-Logik ================= */
+const quarterOf = d => (db.settings.quarters.find(q => q.start && q.end && d >= q.start && d <= q.end) || {}).id || null;
+const holidayOf = d => db.settings.holidays.find(h => h.start && d >= h.start && d <= (h.end || h.start));
+const isPlanned = (c, d, p) => c.timetable.some(t => t.wd === wd(d) && t.p === +p);
+const lessonDone = L => !!L && (!!L.status || ['grades', 'hw', 'absent', 'mat', 'notes', 'late'].some(f => Object.keys(L[f] || {}).length > 0));
+const lessonsOf = cid => Object.values(db.lessons).filter(L => L.classId === cid);
+
+function lessonsOn(d) {
+  const out = new Map();
+  for (const c of db.classes) for (const t of c.timetable) if (t.wd === wd(d)) {
+    const k = lk(c.id, d, t.p); out.set(k, {c, p: t.p, key: k, L: db.lessons[k], planned: true});
+  }
+  for (const [k, L] of Object.entries(db.lessons)) if (L.date === d && !out.has(k)) {
+    const c = cls(L.classId); if (c) out.set(k, {c, p: L.period, key: k, L, planned: false});
+  }
+  return [...out.values()].sort((a, b) => a.p - b.p);
+}
+
+function openLessons() {
+  const res = [], t = today();
+  let d = db.settings.trackFrom || t, guard = 0;
+  while (d <= t && guard++ < 400) {
+    if (wd(d) <= 5 && quarterOf(d) && !holidayOf(d)) {
+      for (const c of db.classes) for (const x of c.timetable) if (x.wd === wd(d)) {
+        const k = lk(c.id, d, x.p);
+        if (!lessonDone(db.lessons[k]) && lessonPhase(d, x.p) === 'past') res.push({c, d, p: x.p, key: k});
+      }
+    }
+    d = addDays(d, 1);
+  }
+  return res;
+}
+const toMin = s => { const [h, m] = (s || '0:0').split(':').map(Number); return h * 60 + m; };
+const fromMin = n => String(Math.floor(n / 60) % 24).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+const nowMin = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
+// 'past' = Stunde ist vorbei, 'now' = läuft gerade, 'future' = kommt noch
+function lessonPhase(d, p) {
+  const t = today(); if (d < t) return 'past'; if (d > t) return 'future';
+  const tm = periodTime(wd(d), p); if (!tm) return 'past';
+  const n = nowMin(); return n >= toMin(tm[1]) ? 'past' : n >= toMin(tm[0]) ? 'now' : 'future';
+}
+// Uhrzeit der Erinnerung an einem Wochentag (nach deiner letzten Stunde oder fest)
+function reminderTime(w) {
+  const S = db.settings;
+  if (S.remMode === 'fixed') return S.reminder;
+  const ps = db.classes.flatMap(c => c.timetable.filter(t => t.wd === w).map(t => t.p));
+  if (!ps.length) return null;
+  const tm = periodTime(w, Math.max(...ps));
+  return tm ? fromMin(toMin(tm[1]) + (+S.remOffset || 0)) : S.reminder;
+}
+
+function ensureLesson(key) {
+  if (!db.lessons[key]) {
+    const [classId, date, p] = key.split('|');
+    db.lessons[key] = {classId, date, period: +p, status: '', topic: '', grades: {}, hw: {}, absent: {}, mat: {}, notes: {}, late: {}};
+  }
+  const L = db.lessons[key];
+  L.mt = Date.now();   // Zeitpunkt der letzten Bearbeitung (fürs Zusammenführen)
+  L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {};
+  return L;
+}
+
+/* ================= Berechnung ================= */
+function quarterStats(c, s, q) {
+  let sum = 0, n = 0, hwY = 0, hwN = 0, abs = 0, mat = 0, late = 0; const items = [];
+  for (const L of lessonsOf(c.id)) {
+    if (quarterOf(L.date) !== q) continue;
+    const g = L.grades[s.id], h = L.hw[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id];
+    if (pts(g) != null) { sum += pts(g); n++; }
+    if (h === 1) hwY++; else if (h === 0) hwN++;
+    if (a) abs++; if (m) mat++; if (l) late++;
+    if (g || a || m || note || l) items.push({d: L.date, g, a, m, note, l});
+  }
+  items.sort((a, b) => a.d < b.d ? -1 : 1);
+  const mean = n ? sum / n : null;
+  const override = (c.overrides[s.id] || {})[q] || '';
+  const final = override ? pts(override) : (mean == null ? null : rnd(mean));
+  return {mean, n, hwY, hwN, abs, mat, late, override, final, items};
+}
+function calcStudent(c, s) {
+  const r = {q: {}};
+  for (const q of QS) r.q[q] = quarterStats(c, s, q);
+  const w = (db.settings.oralWeight ?? 50) / 100;
+  r.h = HJ.map(hj => {
+    const mdl = avg(hj.qs.map(q => r.q[q].final).filter(x => x != null));
+    let ws = 0, sum = 0;
+    for (const e of c.exams.filter(e => hj.qs.includes(e.quarter))) {
+      const p = pts((db.examGrades[e.id] || {})[s.id]);
+      if (p != null) { ws += +e.weight || 1; sum += p * (+e.weight || 1); }
+    }
+    const schr = ws ? sum / ws : null;
+    const tot = (mdl != null && schr != null) ? w * mdl + (1 - w) * schr : null;
+    return {mdl, schr, tot};
+  });
+  r.year = (r.h[0].tot != null && r.h[1].tot != null) ? 0.5 * rnd(r.h[0].tot) + 0.5 * rnd(r.h[1].tot) : null;
+  r.abs = QS.reduce((a, q) => a + r.q[q].abs, 0); r.mat = QS.reduce((a, q) => a + r.q[q].mat, 0); r.late = QS.reduce((a, q) => a + r.q[q].late, 0);
+  return r;
+}
+const examsOfHJ = (c, i) => c.exams.filter(e => HJ[i].qs.includes(e.quarter)).sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : (a.date || '9') > (b.date || '9') ? 1 : a.title.localeCompare(b.title, 'de', {numeric: true}));
+
+/* ================= Ansichten ================= */
+function render() {
+  if (locked) return;
+  document.documentElement.style.setProperty('--toph', $('.top').offsetHeight + 'px');
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === ui.tab));
+  $('#year').textContent = db.settings.year;
+  $('#stand').textContent = 'Stand ' + new Date(db.updated).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+  const m = $('#main');
+  m.classList.toggle('wide', ui.tab === 'uebersicht');
+  m.innerHTML = ui.tab === 'heute' ? (ui.lesson ? vLesson() : vHeute())
+    : ui.tab === 'uebersicht' ? vOverview()
+    : ui.tab === 'ka' ? (ui.examId ? vExam() : vExams())
+    : vSettings();
+  if (ui.tab === 'einst') fillSnapList();
+  if (ui.tab === 'heute' && !ui.lesson) setupAgenda(); else if (agObserver) agObserver.disconnect();
+}
+
+function pills(act, activeId) {
+  return `<div class="pills">${db.classes.map(c => `<button class="${c.id === activeId ? 'on' : ''}" data-act="${act}" data-c="${c.id}">${esc(c.name)}</button>`).join('')}</div>`;
+}
+
+function vHeute() {
+  const d = ui.date, open = openLessons(), hasTT = db.classes.some(c => c.timetable.length);
+  let h = '';
+  const days = db.lastBackup ? (Date.now() - db.lastBackup) / 864e5 : Infinity;
+  if (hasData() && days > 7)
+    h += `<div class="banner">💾 Letzte Sicherung: ${db.lastBackup ? Math.floor(days) + ' Tage her' : 'noch nie'}. <button class="btn sm" data-act="share">Jetzt sichern</button></div>`;
+  if (canDir && localStorage.getItem('notenbuch-dirname'))
+    h += `<div class="row" style="margin-bottom:10px"><button class="btn sm pri" data-act="loaddir">🔄 Neueste Sicherung vom Handy laden</button><span class="small muted">aus „${esc(localStorage.getItem('notenbuch-dirname'))}“</span></div>`;
+  if (!hasTT) h += `<div class="banner">Noch kein Stundenplan hinterlegt. <button class="btn sm" data-act="tab" data-t="einst">Einrichten</button></div>`;
+  else if (open.length) h += `<div class="banner">⏰ <b>${open.length}</b> ${open.length > 1 ? 'Stunden' : 'Stunde'} ohne Eintrag. <button class="btn sm" data-act="openlist">Anzeigen</button></div>`;
+  else h += `<div class="banner ok">✓ Alle Stunden bis heute sind eingetragen.</div>`;
+  const ws = warnings();
+  if (ws.length) h += `<div class="banner bad">⚠ <b>${ws.length}</b> ${ws.length > 1 ? 'Hinweise' : 'Hinweis'} zu Schüler:innen. <button class="btn sm" data-act="warnlist">Anzeigen</button></div>`;
+
+  h += `<div class="row" style="margin-bottom:4px"><button class="btn sm" data-act="totoday">⤓ Zu heute</button><span class="small muted">Springen zu:</span><input type="date" class="grow" value="${d}" data-chg="jump"></div>`;
+  // Endlose Tagesliste
+  h += `<div id="ag-top" class="ag-more">↑ frühere Tage werden geladen …</div>`;
+  const t = today();
+  for (const b of dayBlocks(ui.agFrom, ui.agTo)) {
+    if (b.week) { h += `<div class="weeksep">KW ${b.week}</div>`; continue; }
+    if (b.hol) {
+      h += `<div class="dayhol" id="day-${b.from}">🏖 <b>${esc(b.hol.name || 'Ferien / frei')}</b> · ${fmtDS(b.from)}${b.to !== b.from ? '–' + fmtDS(b.to) : ''}${b.from <= t && t <= b.to ? ' <span class="badge">heute</span>' : ''}</div>`;
+      continue;
+    }
+    const isT = b.d === t;
+    h += `<div class="day${isT ? ' today' : ''}${b.d < t ? ' past' : ''}" id="day-${b.d}">
+      <div class="dayhead"><b>${WDL[wd(b.d)]}, ${fmtDS(b.d)}</b>${isT ? '<span class="badge" style="background:var(--pri);color:#fff">HEUTE</span>' : ''}<span class="muted small">${quarterOf(b.d) || ''}</span><span class="grow"></span><button class="btn sm" data-act="addlesson" data-d="${b.d}" title="Stunde hinzufügen">＋</button></div>
+      ${b.ls.length ? b.ls.map(x => lessonCard(x, b.d)).join('') : '<div class="small muted" style="padding:0 4px 8px">keine Stunden</div>'}</div>`;
+  }
+  h += `<div id="ag-bottom" class="ag-more">↓ weitere Tage werden geladen …</div>`;
+  return h;
+}
+
+// Tage für die Liste: Wochenenden ohne Einträge weglassen, Ferien zu einer Zeile zusammenfassen
+function dayBlocks(from, to) {
+  const out = []; let d = from;
+  while (d <= to) {
+    const w = wd(d), ls = lessonsOn(d), hol = holidayOf(d);
+    if (w === 1 || d === from) out.push({week: isoWeek(d)});
+    if (w > 5 && !ls.some(x => x.L)) { d = addDays(d, 1); continue; }
+    if (hol && !ls.some(x => x.L)) {
+      let e = d;
+      while (addDays(e, 1) <= (hol.end || hol.start) && addDays(e, 1) <= to && !lessonsOn(addDays(e, 1)).some(x => x.L)) {
+        e = addDays(e, 1); if (wd(e) === 1) break;
+      }
+      if (wd(e) === 1 && e !== d) e = addDays(e, -1);
+      out.push({hol, from: d, to: e}); d = addDays(e, 1); continue;
+    }
+    out.push({d, ls}); d = addDays(d, 1);
+  }
+  // doppelte KW-Trenner (z. B. Woche nur mit Wochenende) entfernen
+  return out.filter((b, i) => !(b.week && out[i + 1] && out[i + 1].week));
+}
+function isoWeek(s) {
+  const d = parseISO(s); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const w1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7);
+}
+
+// Nachladen beim Scrollen
+let agObserver = null;
+function setupAgenda() {
+  if (agObserver) agObserver.disconnect();
+  if (ui.tab !== 'heute' || ui.lesson || locked) return;
+  if (ui.agScrollTo) {
+    const el = $(`#day-${ui.agScrollTo}`) || [...document.querySelectorAll('[id^="day-"]')].find(x => x.id.slice(4) >= ui.agScrollTo);
+    if (el) window.scrollTo(0, el.getBoundingClientRect().top + scrollY - $('.top').offsetHeight - 6);
+    ui.agScrollTo = null;
+  } else if (ui.heuteY != null) { window.scrollTo(0, ui.heuteY); ui.heuteY = null; }
+  setTimeout(() => {
+    agObserver = new IntersectionObserver(es => {
+      for (const e of es) if (e.isIntersecting) {
+        agObserver.disconnect();
+        if (e.target.id === 'ag-bottom') { ui.agTo = addDays(ui.agTo, 21); render(); }
+        else {
+          const h0 = document.documentElement.scrollHeight, y = scrollY;
+          ui.agFrom = addDays(ui.agFrom, -21); render();
+          window.scrollTo(0, y + document.documentElement.scrollHeight - h0);
+        }
+        return;
+      }
+    }, {rootMargin: '400px 0px'});
+    ['#ag-top', '#ag-bottom'].forEach(s => $(s) && agObserver.observe($(s)));
+  }, 150);
+}
+function jumpTo(d) {
+  if (d < ui.agFrom || d > ui.agTo) { ui.agFrom = addDays(d, -14); ui.agTo = addDays(d, 21); }
+  ui.date = d; ui.agScrollTo = d; render();
+}
+
+function lessonCard(x, d) {
+    const L = x.L; let st;
+    if (L && L.status === 'ausfall') st = '<span class="badge">Ausfall</span>';
+    else if (L && L.status === 'ohne') st = '<span class="badge ok">ohne Noten</span>';
+    else if (lessonDone(L)) {
+      const ng = Object.keys(L.grades).length, na = Object.keys(L.absent || {}).length;
+      st = `<span class="badge ok">${ng} Noten${na ? ` · ${na} krank` : ''}</span>`;
+    } else {
+      const ph = lessonPhase(d, x.p);
+      st = ph === 'now' ? '<span class="badge" style="background:var(--pri);color:#fff">läuft gerade</span>'
+        : ph === 'future' ? '<span class="badge">kommt noch</span>' : '<span class="badge warn">offen</span>';
+    }
+    const now = lessonPhase(d, x.p) === 'now';
+    return `<div class="card lesson" data-act="lesson" data-k="${x.key}"${now ? ' style="outline:2px solid var(--pri)"' : ''}><div class="per">${x.p}.</div><div class="grow"><b>${esc(x.c.name)}</b>${x.planned ? '' : ' <span class="muted small">(zusätzlich)</span>'}<div class="small muted">${timeStr(wd(d), x.p)}${L && L.topic ? ' · ' + esc(L.topic) : ''}</div></div>${st}</div>`;
+}
+
+function vLesson() {
+  const [cid, d, p] = ui.lesson.split('|'); const c = cls(cid);
+  if (!c) { ui.lesson = null; return vHeute(); }
+  const L = db.lessons[ui.lesson] || {grades: {}, absent: {}, mat: {}, notes: {}, status: '', topic: ''};
+  const q = quarterOf(d);
+  let h = `<div class="row" style="margin-bottom:10px"><button class="btn" data-act="back">‹</button><div class="grow"><b>${esc(c.name)}</b> · ${fmtD(d)} · ${p}. Std <span class="muted small">${timeStr(wd(d), +p)} ${q || ''}</span></div></div>`;
+  h += `<div class="row wrap" style="margin-bottom:10px">
+    <button class="btn sm pri" data-act="random">🎲 Wer kommt dran?</button>
+    <button class="btn sm ${L.status === 'ohne' ? 'pri' : ''}" data-act="status" data-s="ohne">Keine Noten heute</button>
+    <button class="btn sm ${L.status === 'ausfall' ? 'pri' : ''}" data-act="status" data-s="ausfall">Ausfall</button></div>`;
+  h += `<input style="width:100%;margin-bottom:10px" placeholder="Thema / Notiz (optional)" value="${esc(L.topic)}" data-chg="topic">`;
+  if (!c.students.length) h += `<div class="card muted">Für ${esc(c.name)} sind noch keine Schüler:innen eingetragen (Einstellungen).</div>`;
+  else h += `<div class="card slist">` + c.students.map((s, i) => {
+    const g = L.grades[s.id] || '', st = q ? quarterStats(c, s, q) : null;
+    const abs = (L.absent || {})[s.id], mat = (L.mat || {})[s.id], note = (L.notes || {})[s.id], late = (L.late || {})[s.id];
+    const legacy = g && !smiley(g) ? ` · heute: ${g}` : '';
+    return `<div class="st2${abs ? ' abs' : ''}">
+      <div class="row"><span class="nr">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b><span class="sub">${st && st.n ? `${q}: Ø ${gradeOf(st.mean)} (${fmtN(st.mean)} P., ${st.n}×)` : ''}${legacy}</span></div>
+        <button class="ic${abs ? ' on-abs' : ''}" data-act="abs" data-s="${s.id}">🤒<span>krank</span></button>
+        <button class="ic${late ? ' on-late' : ''}" data-act="late" data-s="${s.id}">⏰<span>spät</span></button>
+        <button class="ic${mat ? ' on-mat' : ''}" data-act="mat" data-s="${s.id}">🎒<span>Material</span></button>
+        <button class="ic${note ? ' on-note' : ''}" data-act="note" data-s="${s.id}">📝<span>Notiz</span></button></div>
+      ${note ? `<div class="notetxt">📝 ${esc(note)}</div>` : ''}
+      ${abs ? '<div class="small muted" style="padding:4px 0 2px 30px">war heute krank – keine Note</div>'
+        : `<div class="smrow">${SMILEYS.map(([sg, e]) => `<button class="smb${g === sg ? ' on ' + gcls(sg) : ''}" data-act="smile" data-s="${s.id}" data-g="${sg}">${e}<span>${sg}</span></button>`).join('')}</div>`}
+    </div>`;
+  }).join('') + `</div>`;
+  h += `<p class="help">Smiley antippen = mündliche Tagesnote (😀 1 · 🙂 2 · 😐 3 · 🙁 4 · 😣 5). Nochmal antippen entfernt sie. 🤒 krank, ⏰ verspätet, 🎒 Material vergessen, 📝 Notiz zur Person.</p>`;
+  if (!isPlanned(c, d, p)) h += `<button class="btn danger" data-act="dellesson">Diese zusätzliche Stunde löschen</button>`;
+  return h;
+}
+
+function kaCheck(c) {
+  const cnt = q => c.exams.filter(e => e.quarter === q).length;
+  const ok = QS.every(q => cnt(q) >= 1);
+  return `<div class="banner ${ok ? 'ok' : ''} small">${ok ? '✓ Jedes Quartal hat mindestens eine Klassenarbeit.' : '⚠ Noch nicht jedem Quartal ist eine Klassenarbeit zugeordnet.'} &nbsp; ${QS.map(q => `${q}: ${cnt(q)}`).join(' · ')}</div>`;
+}
+
+function vOverview() {
+  const c = curCls(); if (!c) return '<div class="card">Keine Lerngruppe.</div>';
+  let h = pills('setcur', c.id) + kaCheck(c);
+  if (!c.students.length) return h + `<div class="card muted">Noch keine Schüler:innen eingetragen.</div>`;
+  const ws = warnings(c.id);
+  if (ws.length) h += `<details class="card" style="padding:8px 12px"><summary style="cursor:pointer">⚠ <b>${ws.length}</b> ${ws.length > 1 ? 'Hinweise' : 'Hinweis'} in ${esc(c.name)}</summary>${warnList(ws)}</details>`;
+  h += `<div class="row wrap" style="margin-bottom:10px"><button class="btn sm" data-act="confsheet">📋 Notenliste Zeugniskonferenz</button><button class="btn sm" data-act="printallsheet">🖨 Berichte für alle drucken</button></div>`;
+  const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
+  const span = i => 2 + ex[i].length + 3;
+  let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th colspan="2">Ganzjahr</th><th colspan="4">Schuljahr gesamt</th></tr>`;
+  let head2 = `<tr><th class="nm">Name</th>`;
+  HJ.forEach((hj, i) => {
+    head2 += hj.qs.map(q => `<th>${q}<span class="sub">mündl.</span></th>`).join('');
+    head2 += ex[i].map(e => `<th>${esc(e.title)}<span class="sub">${e.quarter}${e.date ? ' · ' + fmtDL(e.date).slice(0, 6) : ''}</span></th>`).join('');
+    head2 += `<th>Ø mdl.<span class="sub">Pkt.</span></th><th>Ø schr.<span class="sub">Pkt.</span></th><th>${hj.short}<span class="sub">Note</span></th>`;
+  });
+  head2 += `<th>Jahr<span class="sub">Note</span></th><th>🤒<span class="sub">krank</span></th><th>⏰<span class="sub">spät</span></th><th>🎒<span class="sub">Material</span></th><th>📝<span class="sub">Notizen</span></th></tr>`;
+
+  const cols = []; // für Klassenschnitt
+  const rows = c.students.map(s => {
+    const r = calcStudent(c, s); let k = 0, out = '';
+    const put = (val, html, cl = '') => { (cols[k] ||= []); if (val != null) cols[k].push(val); k++; out += `<td class="${cl}">${html}</td>`; };
+    HJ.forEach((hj, i) => {
+      for (const q of hj.qs) { const o = r.q[q];
+        put(o.final, o.final == null ? '' : `<b>${gradeOf(o.final)}${o.override ? '*' : ''}</b><span class="sub">${o.n ? `Ø ${fmtN(o.mean)} · ${o.n}×` : 'manuell'}</span>`); }
+      for (const e of ex[i]) { const g = (db.examGrades[e.id] || {})[s.id]; put(pts(g), g ? `<b>${g}</b>` : ''); }
+      put(r.h[i].mdl, fmtN(r.h[i].mdl, 2), 'calc');
+      put(r.h[i].schr, fmtN(r.h[i].schr, 2), 'calc');
+      put(r.h[i].tot, r.h[i].tot == null ? '' : `<b>${gradeOf(r.h[i].tot)}</b><span class="sub">${fmtN(r.h[i].tot, 2)} P.</span>`, 'res');
+    });
+    put(r.year, r.year == null ? '' : `<b>${gradeOf(r.year)}</b><span class="sub">${fmtN(r.year, 1)} P.</span>`, 'res');
+    const nNotes = QS.reduce((a, q) => a + r.q[q].items.filter(it => it.note).length, 0);
+    out += `<td>${r.abs ? r.abs + '×' : ''}</td><td>${r.late ? r.late + '×' : ''}</td><td>${r.mat ? r.mat + '×' : ''}</td><td>${nNotes || ''}</td>`;
+    return `<tr data-act="student" data-s="${s.id}"><td class="nm">${esc(s.name)}</td>${out}</tr>`;
+  });
+  let avgRow = `<tr class="avg"><td class="nm">Klassenschnitt</td>`;
+  for (let k = 0; k < cols.length; k++) { const a = avg(cols[k] || []); avgRow += `<td>${a == null ? '' : `${fmtN(a, 1)}<span class="sub">${gradeOf(a)}</span>`}</td>`; }
+  avgRow += `<td></td><td></td><td></td><td></td></tr>`;
+  h += `<div class="tbl-wrap"><table class="ov"><thead>${head1}${head2}</thead><tbody>${rows.join('')}${avgRow}</tbody></table></div>`;
+  h += `<p class="help">Mündliche Quartalsnote = Ø der Tagesnoten (gerundet). * = von dir festgelegt. Halbjahr = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % schriftlich, Jahr = Ø der gerundeten Halbjahre. Zeile antippen für Details.</p>`;
+  return h;
+}
+
+function studentSheet(sid) {
+  const c = curCls(), s = c.students.find(x => x.id === sid); if (!s) return;
+  const r = calcStudent(c, s);
+  let h = `<div class="row"><h2 class="grow">${esc(s.name)} <span class="muted small">${esc(c.name)}</span></h2><button class="btn sm" data-act="closesheet">✕</button></div>`;
+  HJ.forEach((hj, i) => {
+    h += `<h3>${hj.name}</h3>`;
+    for (const q of hj.qs) {
+      const o = r.q[q];
+      h += `<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="row"><b class="grow">${q} mündlich</b>
+        <select data-chg="override" data-s="${s.id}" data-q="${q}"><option value="">automatisch${o.mean != null ? ' (' + gradeOf(o.mean) + ')' : ''}</option>${GRADES.map(g => `<option ${o.override === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+        <div class="small muted">${o.n ? `Ø ${fmtN(o.mean, 2)} Punkte aus ${o.n} Noten` : 'keine Tagesnoten'}${o.abs ? ` · ${o.abs}× krank` : ''}${o.late ? ` · ${o.late}× verspätet` : ''}${o.mat ? ` · ${o.mat}× Material vergessen` : ''}</div>
+        <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div></div>`;
+    }
+    const ex = examsOfHJ(c, i);
+    h += `<div class="small">${ex.map(e => `${esc(e.title)}: <b>${(db.examGrades[e.id] || {})[s.id] || '–'}</b>`).join(' · ')}</div>`;
+    h += `<div class="small" style="margin-top:4px">Ø mündl. ${fmtN(r.h[i].mdl, 2) || '–'} · Ø schriftl. ${fmtN(r.h[i].schr, 2) || '–'} → <b>${r.h[i].tot == null ? '–' : `${fmtN(r.h[i].tot, 2)} P. = ${gradeOf(r.h[i].tot)}`}</b></div>`;
+  });
+  h += `<h3>Ganzjahr</h3><div><b>${r.year == null ? '–' : `${fmtN(r.year, 1)} P. = ${gradeOf(r.year)}`}</b></div>`;
+  h += talkSection(c, s);
+  h += `<h3>Bericht für Elterngespräch</h3>${reportOptions('print1', `data-s="${s.id}"`)}`;
+  showSheet(h);
+}
+
+function vExams() {
+  const c = curCls(); if (!c) return '';
+  let h = pills('setcur', c.id) + kaCheck(c);
+  HJ.forEach((hj, i) => {
+    h += `<h3>${hj.name}</h3>`;
+    const ex = examsOfHJ(c, i);
+    if (!ex.length) h += `<div class="muted small">Keine Klassenarbeit.</div>`;
+    for (const e of ex) {
+      const m = db.examGrades[e.id] || {}, n = c.students.filter(s => m[s.id]).length;
+      const a = avg(c.students.map(s => pts(m[s.id])).filter(x => x != null));
+      h += `<div class="card lesson" data-act="exam" data-e="${e.id}"><div class="per">${e.quarter}</div><div class="grow"><b>${esc(e.title)}</b><div class="small muted">${e.date ? fmtDL(e.date) : 'kein Datum'}${(+e.weight || 1) !== 1 ? ' · Gewicht ' + e.weight : ''}${a != null ? ` · Ø ${gradeOf(a)} (${fmtN(a)} P.)` : ''}</div></div><span class="badge ${n === c.students.length && n ? 'ok' : ''}">${n}/${c.students.length}</span></div>`;
+    }
+  });
+  h += `<button class="btn pri" data-act="addexam" style="margin-top:8px">+ Klassenarbeit hinzufügen</button>`;
+  return h;
+}
+
+function vExam() {
+  const c = curCls(), e = c && c.exams.find(x => x.id === ui.examId);
+  if (!e) { ui.examId = null; return vExams(); }
+  const m = db.examGrades[e.id] || {};
+  let h = `<div class="row" style="margin-bottom:10px"><button class="btn" data-act="back">‹</button><b class="grow">${esc(c.name)} · ${esc(e.title)}</b></div>`;
+  h += `<div class="card"><div class="row wrap">
+    <div class="field grow"><label>Bezeichnung</label><input value="${esc(e.title)}" data-chg="exam" data-f="title"></div>
+    <div class="field"><label>Datum</label><input type="date" value="${e.date}" data-chg="exam" data-f="date"></div>
+    <div class="field"><label>Quartal</label><select data-chg="exam" data-f="quarter">${QS.map(q => `<option ${q === e.quarter ? 'selected' : ''}>${q}</option>`).join('')}</select></div>
+    <div class="field"><label>Gewicht</label><input type="number" min="0.5" step="0.5" style="width:80px" value="${e.weight}" data-chg="exam" data-f="weight"></div></div>
+    <button class="btn sm danger" data-act="delexam">Klassenarbeit löschen</button></div>`;
+  h += `<div class="card slist">` + c.students.map((s, i) => {
+    const g = m[s.id] || '';
+    return `<div class="st"><span class="nr">${i + 1}</span><div class="grow">${esc(s.name)}</div><button class="chip ${g ? 'has ' + gcls(g) : ''}" data-act="pick" data-k="exam" data-s="${s.id}">${g || '+'}</button></div>`;
+  }).join('') + `</div><p class="help">Nach jeder Note springt die Auswahl zur nächsten Person.</p>`;
+  return h;
+}
+
+function vSettings() {
+  const S = db.settings, c = curCls();
+  let h = `<h3>Lerngruppen</h3>` + pills('setcur', c ? c.id : '') + `<button class="btn sm" data-act="addclass" style="margin-bottom:10px">+ Neue Lerngruppe</button>`;
+  if (c) {
+    h += `<div class="card">
+      <div class="field"><label>Name der Lerngruppe</label><input value="${esc(c.name)}" data-chg="cname"></div>
+      <div class="field"><label>Schüler:innen (${c.students.length}) – eine Person pro Zeile, z. B. aus Excel kopiert</label>
+        <textarea data-chg="students" placeholder="Ahrens, Jette&#10;Dyck, Rebecca&#10;…">${esc(c.students.map(s => s.name).join('\n'))}</textarea></div>
+      <div class="field"><label>Stundenplan – Stunden antippen, in denen du ${esc(c.name)} hast</label>${ttGrid(c)}</div>
+      <button class="btn sm danger" data-act="delclass">Lerngruppe löschen</button></div>`;
+  }
+  h += `<h3>Darstellung</h3><div class="card"><div class="field" style="margin:0"><label>Farbschema</label><select data-chg="theme">
+    ${[['auto', 'automatisch (wie das Gerät)'], ['light', 'hell'], ['dark', 'dunkel']].map(([v, t]) => `<option value="${v}" ${themePref() === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>`;
+  h += `<h3>Schuljahr & Quartale</h3><div class="card">
+    <div class="field"><label>Schuljahr</label><input value="${esc(S.year)}" data-chg="set" data-f="year"></div>
+    <div class="qgrid"><span></span><span class="small muted">Beginn</span><span class="small muted">Ende</span>
+    ${S.quarters.map((q, i) => `<b>${q.id}</b><input type="date" value="${q.start}" data-chg="quarter" data-i="${i}" data-f="start"><input type="date" value="${q.end}" data-chg="quarter" data-i="${i}" data-f="end">`).join('')}</div>
+    <p class="help">Tagesnoten werden über ihr Datum dem Quartal zugeordnet. Bitte an die Termine deiner Schule anpassen.</p>
+    <div class="field"><label>Gewicht mündlich in der Halbjahresnote (%)</label><input type="number" min="0" max="100" step="5" style="width:90px" value="${S.oralWeight}" data-chg="set" data-f="oralWeight"></div></div>`;
+  h += `<h3>Ferien & freie Tage</h3><div class="card">
+    <div class="small" style="margin-bottom:8px">Schulferien NRW 2026/27 und 2027/28 sowie Feiertage an Schultagen sind eingetragen. Die <b>3 beweglichen Ferientage</b> legt deine Schule selbst fest – bitte mit „+ Zeitraum“ ergänzen.</div>
+    <div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-act="nrw">🗓 NRW-Ferien erneut eintragen</button></div>
+    <details${S.holidays.length > 6 ? '' : ' open'}><summary class="small" style="cursor:pointer;margin-bottom:8px">${S.holidays.length} Zeiträume anzeigen / bearbeiten</summary>` +
+    (S.holidays.length ? S.holidays.map((x, i) => `<div class="row wrap" style="margin-bottom:6px"><input type="date" value="${x.start}" data-chg="hol" data-i="${i}" data-f="start"> – <input type="date" value="${x.end}" data-chg="hol" data-i="${i}" data-f="end"><input class="grow" placeholder="z. B. Herbstferien" value="${esc(x.name)}" data-chg="hol" data-i="${i}" data-f="name"><button class="btn sm" data-act="delhol" data-i="${i}">✕</button></div>`).join('') : '<div class="muted small">Keine eingetragen.</div>') +
+    `</details><button class="btn sm" data-act="addhol" style="margin-top:6px">+ Zeitraum</button><p class="help">An diesen Tagen erinnert die App nicht, und sie fehlen in der Kalender-Erinnerung.</p></div>`;
+  h += `<h3>Erinnerung</h3><div class="card">
+    <div class="field"><label>Erinnern</label><select data-chg="set" data-f="remMode">
+      <option value="after" ${S.remMode !== 'fixed' ? 'selected' : ''}>nach meiner letzten Stunde des Tages</option>
+      <option value="fixed" ${S.remMode === 'fixed' ? 'selected' : ''}>immer zur selben Uhrzeit</option></select></div>
+    <div class="row wrap">${S.remMode === 'fixed'
+      ? `<div class="field"><label>Uhrzeit</label><input type="time" value="${S.reminder}" data-chg="set" data-f="reminder"></div>`
+      : `<div class="field"><label>Minuten nach Stundenende</label><input type="number" min="0" max="600" step="5" style="width:90px" value="${S.remOffset}" data-chg="set" data-f="remOffset"></div>`}
+    <div class="field"><label>Offene Stunden zählen ab</label><input type="date" value="${S.trackFrom}" data-chg="set" data-f="trackFrom"></div></div>
+    <div class="small" style="margin-bottom:10px">${[1,2,3,4,5].map(w => { const t = reminderTime(w); return t ? `${WD[w]} ${t}` : null; }).filter(Boolean).join(' · ') || '<span class="muted">Noch kein Stundenplan.</span>'}</div>
+    <button class="btn pri" data-act="ics">📆 Erinnerung für den Kalender erstellen (.ics)</button>
+    <p class="help">Erstellt für jeden Wochentag mit Unterricht einen wiederkehrenden Termin mit Benachrichtigung zur oben angezeigten Uhrzeit (z. B. „Noten eintragen: 6b (3.), 8 E-Kurs (5.)“), ohne Ferien. Am einfachsten am PC unter calendar.google.com → Einstellungen → Importieren laden, dann klingelt dein Handy. Nach Stundenplan-Änderungen neu erstellen und den alten Kalender löschen.<br>Zusätzlich zeigt die App unter „Heute“ alle Stunden ohne Eintrag.</p></div>`;
+  h += `<h3>Hinweise</h3><div class="card"><div class="row wrap">
+    <div class="field"><label>Warnen bei weniger als … Tagesnoten im Quartal</label><input type="number" min="0" style="width:80px" value="${S.warnMinGrades}" data-chg="set" data-f="warnMinGrades"></div>
+    <div class="field"><label>… × Material vergessen im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnMat}" data-chg="set" data-f="warnMat"></div>
+    <div class="field"><label>… × verspätet im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnLate}" data-chg="set" data-f="warnLate"></div></div>
+    <p class="help">0 = Hinweis ausgeschaltet. Außerdem wird immer gewarnt, wenn jemand mündlich oder im Halbjahr auf 5+ oder schlechter steht.</p></div>`;
+  h += `<h3>KI für Gesprächsnotizen (optional)</h3><div class="card">` + (aiCfg && aiCfg.on
+    ? `<div style="margin-bottom:8px">✨ KI ist eingeschaltet (Claude Opus 5.5 von Anthropic).</div><button class="btn sm danger" data-act="aioff">KI ausschalten & Schlüssel löschen</button>`
+    : `<p class="help" style="margin-top:0">Ohne KI erstellt die App Gesprächsnotizen offline mit Textbausteinen. Mit KI werden sie flüssiger formuliert. Dafür werden Noten, Zählungen und deine Notizen – mit ersetzten Namen – an Anthropic gesendet. Du siehst vor jedem Senden genau, was übertragen wird.<br><b>Bitte vorher mit Schulleitung bzw. Datenschutzbeauftragten klären.</b> Kosten: wenige Cent pro Bericht, über deinen eigenen API-Schlüssel (console.anthropic.com).</p>
+       <div class="row wrap"><input id="ai-key" type="password" autocomplete="off" placeholder="API-Schlüssel sk-ant-…" class="grow"><button class="btn pri sm" data-act="aisave">KI einschalten</button></div>`) +
+    `<p class="help">Der Schlüssel bleibt nur auf diesem Gerät und ist nicht Teil der Sicherung.</p></div>`;
+  h += `<h3>PIN-Sperre</h3><div class="card">` + (pinCfg
+    ? `<div style="margin-bottom:8px">🔒 PIN ist aktiv.</div>
+       <div class="field"><label>Sperren, wenn die App im Hintergrund war</label><select data-chg="lockafter">
+         ${[[0, 'sofort'], [1, 'nach 1 Minute'], [5, 'nach 5 Minuten'], [15, 'nach 15 Minuten']].map(([v, t]) => `<option value="${v}" ${+pinCfg.lockAfter === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+       <div class="row wrap"><button class="btn sm" data-act="locknow">Jetzt sperren</button><button class="btn sm danger" data-act="delpin">PIN-Sperre ausschalten</button></div>
+       <h3 style="margin-top:14px">PIN ändern</h3>`
+    : `<p class="help" style="margin-top:0">Beim Öffnen fragt die App nach einer PIN (4–6 Ziffern). Die PIN gilt nur für dieses Gerät. Achtung: Ohne PIN kommst du nur wieder hinein, indem du alle Daten auf diesem Gerät löschst und eine Sicherung lädst.</p>`) +
+    `<div class="row wrap"><input id="pin1" type="password" inputmode="numeric" maxlength="6" placeholder="neue PIN" style="width:120px"><input id="pin2" type="password" inputmode="numeric" maxlength="6" placeholder="wiederholen" style="width:120px"><button class="btn pri sm" data-act="setpin">PIN ${pinCfg ? 'ändern' : 'festlegen'}</button></div></div>`;
+  h += `<h3>Daten & Abgleich Handy → PC</h3><div class="card">
+    <div class="small" style="margin-bottom:8px">Letzte Sicherung: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleString('de-DE') : 'noch nie'}</b></div>
+    <div class="row wrap">
+      <button class="btn pri" data-act="share">📤 Sicherung teilen (Drive/OneDrive)</button>
+      <button class="btn" data-act="download">💾 Sicherung herunterladen</button>
+      <button class="btn" data-act="import">📂 Sicherung laden</button>
+      <button class="btn" data-act="xlsx">📊 Excel exportieren</button></div>
+    <p class="help">Alle Daten liegen nur auf diesem Gerät. Am Handy „Sicherung teilen“ → in deinen Cloud-Ordner speichern. Am PC dieselbe App öffnen → „Sicherung laden“. Beim Laden kannst du wählen: zusammenführen oder ersetzen.</p>
+    <div class="card" style="box-shadow:none;border:1px solid var(--line);margin-top:8px"><b>🔐 Sicherungen verschlüsseln</b>
+      ${encCfg
+        ? `<div class="small" style="margin:4px 0 8px">✓ Aktiv – neue Sicherungsdateien sind ohne Passwort nicht lesbar. Auf dem anderen Gerät wird das Passwort beim ersten Laden einmal abgefragt.</div>
+           <div class="row wrap"><button class="btn sm danger" data-act="delenc">Verschlüsselung ausschalten</button></div>
+           <div class="small muted" style="margin-top:8px">Passwort ändern (ältere Sicherungen brauchen weiter das alte Passwort):</div>`
+        : `<div class="small muted" style="margin:4px 0 8px">Empfohlen für Schülerdaten in der Cloud. <b>Wichtig:</b> Wer das Passwort vergisst, kann die Sicherungen nicht mehr öffnen – bitte gut notieren. Der Excel-Export bleibt unverschlüsselt.</div>`}
+      <div class="row wrap"><input id="enc1" type="password" autocomplete="new-password" placeholder="Passwort (mind. 8 Zeichen)" class="grow"><input id="enc2" type="password" autocomplete="new-password" placeholder="wiederholen" class="grow"><button class="btn pri sm" data-act="setenc">${encCfg ? 'Ändern' : 'Einschalten'}</button></div></div>
+    ${canDir ? `<div class="card" style="box-shadow:none;border:1px solid var(--line);margin-top:8px"><b>💻 Am PC: Sicherungsordner</b>
+      <div class="small muted" style="margin:4px 0 8px">Einmal den Ordner wählen, in den dein Handy die Sicherungen legt (z. B. Google Drive oder OneDrive auf dem PC). Danach lädt „Neueste Sicherung laden“ mit einem Klick die aktuellste Datei.</div>
+      <div class="row wrap">${localStorage.getItem('notenbuch-dirname') ? `<button class="btn pri sm" data-act="loaddir">🔄 Neueste Sicherung laden</button><span class="small muted">Ordner: ${esc(localStorage.getItem('notenbuch-dirname'))}</span>` : ''}<button class="btn sm" data-act="pickdir">📁 ${localStorage.getItem('notenbuch-dirname') ? 'Anderen Ordner wählen' : 'Sicherungsordner wählen'}</button></div></div>` : ''}
+    <button class="btn sm danger" data-act="wipe">Alle Daten auf diesem Gerät löschen</button></div>`;
+  h += `<h3>Wiederherstellungspunkte</h3><div class="card">
+    <p class="help" style="margin-top:0">Die App speichert automatisch Zwischenstände auf diesem Gerät: einmal täglich und vor dem Laden einer Sicherung, vor dem Wiederherstellen und vor dem Löschen. Es werden die letzten ${SNAP_MAX} behalten. Hilft bei versehentlichem Löschen – nicht bei Verlust des Handys (dafür die Sicherung in der Cloud).</p>
+    <div id="snaplist" class="small muted">wird geladen …</div>
+    <button class="btn sm" data-act="snapnow" style="margin-top:8px">+ Jetzt Punkt anlegen</button></div>`;
+  return h;
+}
+
+function ttGrid(c) {
+  let h = `<table class="ttgrid"><tr><th></th>${[1,2,3,4,5].map(w => `<th>${WD[w]}</th>`).join('')}</tr>`;
+  for (let p = 1; p <= PERIODS; p++) {
+    h += `<tr><th style="width:64px">${p}.<span class="sub">${periodTime(1, p)[0]}</span></th>`;
+    for (let w = 1; w <= 5; w++) {
+      if (!periodTime(w, p)) { h += `<td class="other" title="An diesem Tag gibt es keine ${p}. Stunde">–</td>`; continue; }
+      const on = c.timetable.some(t => t.wd === w && t.p === p);
+      const other = db.classes.find(o => o.id !== c.id && o.timetable.some(t => t.wd === w && t.p === p));
+      h += `<td class="${on ? 'on' : other ? 'other' : ''}" data-act="tt" data-w="${w}" data-p="${p}">${on ? '✓' : other ? esc(other.name) : ''}</td>`;
+    }
+    h += `</tr>`;
+  }
+  return h + `</table>`;
+}
+
+/* ================= Bottom-Sheets ================= */
+function showSheet(html) { $('#sheetbody').innerHTML = html; $('#sheet').classList.remove('hidden'); }
+function closeSheet() { $('#sheet').classList.add('hidden'); ui.pick = null; }
+function toast(msg, withUndo) {
+  document.querySelectorAll('.toast').forEach(x => x.remove());
+  const t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = `<span>${esc(msg)}</span>${withUndo ? '<button class="toast-undo" data-act="undo">Rückgängig</button>' : ''}`;
+  document.body.appendChild(t); setTimeout(() => t.remove(), withUndo ? 5000 : 2200);
+}
+
+function openPicker(kind, sid) {
+  const c = kind === 'lesson' ? cls(ui.lesson.split('|')[0]) : curCls();
+  const s = c.students.find(x => x.id === sid); if (!s) return closeSheet();
+  ui.pick = {kind, sid};
+  const cur = kind === 'lesson' ? (db.lessons[ui.lesson] || {grades: {}}).grades[sid] : (db.examGrades[ui.examId] || {})[sid];
+  showSheet(`<div class="row"><b class="grow" style="font-size:18px">${esc(s.name)}</b><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="ggrid">${GRADES.map(g => `<button class="${gcls(g)} ${cur === g ? 'cur' : ''}" data-act="setgrade" data-g="${g}">${g}</button>`).join('')}<button data-act="setgrade" data-g="" style="grid-column:span 2">Note entfernen</button></div>`);
+}
+
+function openListSheet() {
+  const open = openLessons();
+  showSheet(`<div class="row"><h2 class="grow">Stunden ohne Eintrag</h2><button class="btn sm" data-act="closesheet">✕</button></div>` +
+    (open.length ? open.map(o => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="grow"><b>${esc(o.c.name)}</b> · ${fmtD(o.d)} · ${o.p}. Std</div><button class="btn sm" data-act="ausfallkey" data-k="${o.key}">Ausfall</button><button class="btn sm pri" data-act="lesson" data-k="${o.key}">Öffnen</button></div>`).join('') : '<div class="muted">Alles erledigt 🎉</div>') +
+    `<p class="help">„Ausfall“ = kein Unterricht. In einer Stunde ohne Noten „Keine Noten heute“ antippen.</p>`);
+}
+
+function addLessonSheet() {
+  showSheet(`<div class="row"><h2 class="grow">Stunde hinzufügen</h2><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="row wrap"><div class="field"><label>Lerngruppe</label><select id="al-c">${db.classes.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>Stunde</label><select id="al-p">${(BELL[wd(ui.date)] || LONG_DAY).map((t, i) => `<option value="${i + 1}">${i + 1}. Std (${t[0]}–${t[1]})</option>`).join('')}</select></div></div>
+    <div class="muted small" style="margin-bottom:10px">am ${fmtDL(ui.date)}</div>
+    <button class="btn pri" data-act="addlesson2">Hinzufügen</button>`);
+}
+
+/* ================= Dateien: Sicherung, Excel, Kalender ================= */
+/* ---------- Verschlüsselung der Sicherungsdatei (AES-GCM 256, Schlüssel per PBKDF2 aus dem Passwort) ---------- */
+const ENCKEY = 'notenbuch-enc', ENC_ITER = 310000;
+let encCfg = null; try { encCfg = JSON.parse(localStorage.getItem(ENCKEY)); } catch (e) {}
+const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const b64d = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+async function deriveKeyRaw(pw, saltB64, iter) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name: 'PBKDF2', hash: 'SHA-256', salt: b64d(saltB64), iterations: iter}, base, 256);
+  return b64e(new Uint8Array(bits));
+}
+const aesKey = raw => crypto.subtle.importKey('raw', b64d(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
+async function encryptText(text) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, await aesKey(encCfg.key), new TextEncoder().encode(text));
+  // Nur der Zeitstempel bleibt lesbar (damit am PC die neueste Datei gefunden wird)
+  return JSON.stringify({notenbuchEnc: 1, alg: 'AES-GCM-256 / PBKDF2-SHA256', iter: encCfg.iter, salt: encCfg.salt, iv: b64e(iv), updated: db.updated, data: b64e(new Uint8Array(ct))});
+}
+function askPassword(msg) {
+  return new Promise(res => {
+    showSheet(`<h2>🔐 Passwort</h2><div class="small" style="margin-bottom:8px">${esc(msg)}</div>
+      <input id="pw-in" type="password" autocomplete="current-password" style="width:100%">
+      <div class="row" style="margin-top:10px"><button class="btn pri grow" id="pw-ok">OK</button><button class="btn" id="pw-no">Abbrechen</button></div>`);
+    const done = v => { closeSheet(); res(v); };
+    $('#pw-ok').onclick = () => done($('#pw-in').value);
+    $('#pw-no').onclick = () => done(null);
+    $('#pw-in').onkeydown = e => { if (e.key === 'Enter') done($('#pw-in').value); };
+    setTimeout(() => $('#pw-in').focus(), 50);
+  });
+}
+const keyCache = {};
+async function decryptBackup(w) {
+  let raw = (encCfg && encCfg.salt === w.salt) ? encCfg.key : keyCache[w.salt];
+  for (let i = 0; i < 3; i++) {
+    if (!raw) {
+      const pw = await askPassword(i ? 'Falsches Passwort – bitte erneut versuchen.' : 'Diese Sicherung ist verschlüsselt. Bitte das Passwort eingeben.');
+      if (pw == null) throw new Error('abgebrochen');
+      raw = await deriveKeyRaw(pw, w.salt, w.iter);
+    }
+    try {
+      const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64d(w.iv)}, await aesKey(raw), b64d(w.data));
+      keyCache[w.salt] = raw;
+      if (!encCfg && confirm('Passwort auf diesem Gerät merken?\n\nDann musst du es hier nicht mehr eingeben, und Sicherungen von diesem Gerät werden ebenfalls verschlüsselt.')) {
+        encCfg = {salt: w.salt, iter: w.iter, key: raw}; localStorage.setItem(ENCKEY, JSON.stringify(encCfg));
+      }
+      return new TextDecoder().decode(pt);
+    } catch (e) { raw = null; }
+  }
+  throw new Error('Falsches Passwort');
+}
+
+async function backupFile(asTxt) {
+  let text = JSON.stringify(db); if (encCfg) text = await encryptText(text);
+  const name = `Notenbuch-Sicherung_${stamp()}`;
+  return asTxt ? new File([text], name + '.txt', {type: 'text/plain'}) : new File([text], name + '.json', {type: 'application/json'});
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function markBackup() { db.lastBackup = Date.now(); saveQuiet(); render(); }
+async function shareBackup() {
+  for (const asTxt of [false, true]) {
+    const f = await backupFile(asTxt);
+    if (navigator.canShare && navigator.canShare({files: [f]})) {
+      try { await navigator.share({files: [f], title: 'Notenbuch-Sicherung'}); markBackup(); toast('Sicherung geteilt'); }
+      catch (e) { if (e.name !== 'AbortError') alert('Teilen fehlgeschlagen: ' + e.message); }
+      return;
+    }
+  }
+  const f = await backupFile(false); downloadBlob(f, f.name); markBackup(); toast('Teilen nicht verfügbar – Datei wurde heruntergeladen');
+}
+
+$('#importfile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let j;
+  try { j = await parseBackup(await f.text()); }
+  catch (err) { if (err.message !== 'abgebrochen') alert(err.message === 'Falsches Passwort' ? 'Das Passwort ist falsch – die Sicherung wurde nicht geladen.' : 'Diese Datei ist keine Notenbuch-Sicherung.'); return; }
+  showImportSheet(j, f.name);
+});
+async function parseBackup(text) {
+  let j = JSON.parse(text);
+  if (j && j.notenbuchEnc) j = JSON.parse(await decryptBackup(j));
+  if (!j || !j.v || !Array.isArray(j.classes)) throw new Error('keine Sicherung');
+  return j;
+}
+const fmtStand = t => new Date(t).toLocaleString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+
+/* ---------- Laden: Zusammenführen oder Ersetzen ---------- */
+function showImportSheet(j, fname) {
+  ui.pendingImport = j;
+  const older = hasData() && j.updated < db.updated;
+  showSheet(`<div class="row"><h2 class="grow">Sicherung laden</h2><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="small" style="margin-bottom:10px">${fname ? `<b>${esc(fname)}</b><br>` : ''}Stand der Sicherung: <b>${fmtStand(j.updated)}</b><br>Stand auf diesem Gerät: <b>${hasData() ? fmtStand(db.updated) : 'leer'}</b>
+    ${older ? '<div class="banner" style="margin-top:8px">⚠ Die Sicherung ist älter als die Daten auf diesem Gerät.</div>' : ''}</div>
+    <button class="btn pri" style="width:100%;margin-bottom:8px" data-act="importmerge">🔀 Zusammenführen (empfohlen)</button>
+    <div class="small muted" style="margin:-2px 0 12px">Neue Einträge von beiden Geräten bleiben erhalten. Wurde dieselbe Stunde auf beiden Geräten geändert, gewinnt die zuletzt bearbeitete.</div>
+    <button class="btn" style="width:100%;margin-bottom:8px" data-act="importreplace">♻️ Ersetzen</button>
+    <div class="small muted" style="margin-top:-2px">Alle Daten auf diesem Gerät werden durch die Sicherung ersetzt.</div>
+    <p class="help">Vorher wird automatisch ein Wiederherstellungspunkt angelegt.</p>`);
+}
+
+// Zusammenführen zweier Stände: pro Stunde gewinnt die zuletzt bearbeitete Fassung, Gelöschtes bleibt gelöscht
+function mergeDb(localDb, incomingDb) {
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const A = migrate(clone(localDb)), B = migrate(clone(incomingDb));
+  const newer = B.updated > A.updated ? B : A, older = newer === A ? B : A;
+  const del = {};
+  for (const k of ['lessons', 'exams', 'classes', 'students']) {
+    del[k] = {...A.deleted[k]};
+    for (const [id, t] of Object.entries(B.deleted[k])) del[k][id] = Math.max(del[k][id] || 0, t);
+  }
+  const out = clone(newer); out.deleted = del;
+  // Ferien: Vereinigung
+  for (const h of older.settings.holidays) if (!out.settings.holidays.some(x => x.start === h.start && x.end === h.end)) out.settings.holidays.push(h);
+  // Lerngruppen
+  const ids = [...new Set([...newer.classes.map(c => c.id), ...older.classes.map(c => c.id)])];
+  out.classes = [];
+  for (const id of ids) {
+    if (del.classes[id]) continue;
+    const n = newer.classes.find(c => c.id === id), o = older.classes.find(c => c.id === id);
+    if (!n || !o) { out.classes.push(clone(n || o)); continue; }
+    const c = clone(n);
+    for (const s of o.students) if (!c.students.some(x => x.id === s.id)) c.students.push(s);
+    c.students = c.students.filter(s => !del.students[s.id]);
+    for (const e of o.exams) if (!c.exams.some(x => x.id === e.id)) c.exams.push(e);
+    c.exams = c.exams.filter(e => !del.exams[e.id]);
+    for (const [sid, v] of Object.entries(o.overrides)) if (!c.overrides[sid]) c.overrides[sid] = v;
+    for (const [sid, v] of Object.entries(o.talk)) if (!c.talk[sid] || (v.at || 0) > (c.talk[sid].at || 0)) c.talk[sid] = v;
+    out.classes.push(c);
+  }
+  // Stunden: zuletzt bearbeitete Fassung gewinnt
+  out.lessons = {};
+  for (const src of [older, newer]) for (const [k, L] of Object.entries(src.lessons)) {
+    const cur = out.lessons[k];
+    if (!cur || (L.mt || 0) >= (cur.mt || 0)) out.lessons[k] = L;
+  }
+  for (const [k, L] of Object.entries(out.lessons)) if (del.lessons[k] && del.lessons[k] >= (L.mt || 0)) delete out.lessons[k];
+  // Klassenarbeitsnoten: pro Arbeit die zuletzt bearbeitete Fassung
+  out.examGrades = {}; out.examMt = {};
+  for (const src of [older, newer]) for (const [eid, m] of Object.entries(src.examGrades)) {
+    const t = src.examMt[eid] || 0;
+    if (!out.examGrades[eid] || t >= (out.examMt[eid] || 0)) { out.examGrades[eid] = m; out.examMt[eid] = t; }
+  }
+  for (const eid of Object.keys(del.exams)) { delete out.examGrades[eid]; delete out.examMt[eid]; }
+  out.updated = Date.now(); out.lastBackup = localDb.lastBackup;
+  return out;
+}
+async function doImport(mode) {
+  const j = ui.pendingImport; if (!j) return;
+  await snapAdd('Vor dem Laden einer Sicherung');
+  const before = db;
+  db = mode === 'merge' ? mergeDb(db, j) : migrate(j);
+  saveQuiet(); ui.pendingImport = null; ui.lesson = null; ui.examId = null;
+  if (!cls(ui.cls)) ui.cls = db.classes[0]?.id;
+  closeSheet(); render();
+  if (mode === 'merge') {
+    const neu = Object.keys(db.lessons).filter(k => !before.lessons[k]).length;
+    const upd = Object.keys(db.lessons).filter(k => before.lessons[k] && (before.lessons[k].mt || 0) !== (db.lessons[k].mt || 0)).length;
+    toast(`Zusammengeführt: ${neu} neue, ${upd} aktualisierte Stunden`);
+  } else toast('Sicherung geladen');
+}
+
+/* ---------- Wiederherstellungspunkte (IndexedDB, nur auf diesem Gerät) ---------- */
+let idbP = null;
+function idb() {
+  return idbP ||= new Promise((res, rej) => {
+    const r = indexedDB.open('notenbuch', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('snaps', {keyPath: 'id', autoIncrement: true}); r.result.createObjectStore('kv'); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbReq(store, mode, fn) {
+  const d = await idb();
+  return new Promise((res, rej) => { const t = d.transaction(store, mode), q = fn(t.objectStore(store)); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); });
+}
+const SNAP_MAX = 10;
+async function snapAdd(label) {
+  if (!hasData()) return;
+  try {
+    await idbReq('snaps', 'readwrite', s => s.add({at: Date.now(), label, updated: db.updated, data: JSON.stringify(db)}));
+    const all = (await idbReq('snaps', 'readonly', s => s.getAllKeys())) || [];
+    const extra = all.sort((a, b) => a - b).slice(0, Math.max(0, all.length - SNAP_MAX));
+    if (extra.length) await idbReq('snaps', 'readwrite', s => { extra.forEach(k => s.delete(k)); });
+    localStorage.setItem('notenbuch-lastsnap', today());
+  } catch (e) { console.warn('Wiederherstellungspunkt fehlgeschlagen', e); }
+}
+async function snapList() { return ((await idbReq('snaps', 'readonly', s => s.getAll())) || []).sort((a, b) => b.at - a.at); }
+async function fillSnapList() {
+  const el = $('#snaplist'); if (!el) return;
+  const list = await snapList().catch(() => []);
+  el.innerHTML = list.length ? list.map(x => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="grow small"><b>${fmtStand(x.at)}</b> · ${esc(x.label)}<div class="muted">Datenstand ${fmtStand(x.updated)}</div></div><button class="btn sm" data-act="snaprestore" data-id="${x.id}">Wiederherstellen</button></div>`).join('')
+    : '<div class="small muted">Noch keine Wiederherstellungspunkte.</div>';
+}
+
+/* ---------- PC: Sicherungsordner merken und mit einem Klick laden ---------- */
+const canDir = 'showDirectoryPicker' in window;
+async function pickBackupDir() {
+  let h; try { h = await window.showDirectoryPicker({id: 'notenbuch', mode: 'read'}); } catch (e) { return; }
+  await idbReq('kv', 'readwrite', s => s.put(h, 'dir'));
+  localStorage.setItem('notenbuch-dirname', h.name);
+  render(); await loadFromDir();
+}
+async function loadFromDir() {
+  const h = await idbReq('kv', 'readonly', s => s.get('dir'));
+  if (!h) return alert('Bitte zuerst den Sicherungsordner wählen (Einstellungen → Daten).');
+  if ((await h.queryPermission({mode: 'read'})) !== 'granted' && (await h.requestPermission({mode: 'read'})) !== 'granted') return;
+  const files = [];
+  for await (const [name, e] of h.entries()) if (e.kind === 'file' && /^Notenbuch-Sicherung.*\.(json|txt)$/i.test(name)) files.push(await e.getFile());
+  files.sort((a, b) => b.lastModified - a.lastModified);
+  let best = null;
+  // neueste Datei anhand des (auch bei Verschlüsselung lesbaren) Zeitstempels finden, dann nur diese öffnen
+  for (const f of files.slice(0, 20)) {
+    try { const text = await f.text(), w = JSON.parse(text); if ((w.notenbuchEnc || w.v) && (!best || w.updated > best.updated)) best = {text, updated: w.updated, name: f.name}; } catch (e) {}
+  }
+  if (!best) return alert(`Im Ordner „${h.name}“ wurde keine Notenbuch-Sicherung gefunden.`);
+  let j;
+  try { j = await parseBackup(best.text); }
+  catch (e) { if (e.message !== 'abgebrochen') alert(e.message === 'Falsches Passwort' ? 'Das Passwort ist falsch.' : 'Die Datei konnte nicht gelesen werden.'); return; }
+  showImportSheet(j, best.name);
+}
+
+// --- Mini-XLSX-Writer (ohne externe Bibliothek, funktioniert offline) ---
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipBlob(files, type) {
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), data = enc.encode(f.text), crc = crc32(data), sz = data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(12, 0x21, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true); lh.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(lh.buffer), nm, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(14, 0x21, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), nm);
+    off += 30 + nm.length + sz;
+  }
+  const cdSize = central.reduce((a, b) => a + b.length, 0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], {type});
+}
+const xe = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+const colL = n => { let s = ''; n++; while (n) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+function sheetXml(rows, widths, freeze) {
+  let x = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`;
+  x += `<sheetViews><sheetView workbookViewId="0">${freeze ? `<pane xSplit="${freeze[0]}" ySplit="${freeze[1]}" topLeftCell="${colL(freeze[0])}${freeze[1] + 1}" activePane="bottomRight" state="frozen"/>` : ''}</sheetView></sheetViews>`;
+  if (widths) x += `<cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`;
+  x += `<sheetData>`;
+  rows.forEach((r, ri) => {
+    x += `<row r="${ri + 1}">`;
+    r.forEach((v, ci) => {
+      if (v == null || v === '') return;
+      const ref = colL(ci) + (ri + 1), bold = ri === 0 || (r._bold);
+      if (typeof v === 'number') x += `<c r="${ref}" s="${bold ? 1 : (Number.isInteger(v) ? 0 : 2)}"><v>${v}</v></c>`;
+      else x += `<c r="${ref}" t="inlineStr"${bold ? ' s="1"' : ''}><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
+    });
+    x += `</row>`;
+  });
+  return x + `</sheetData></worksheet>`;
+}
+function exportXlsx() {
+  const sheets = [], used = new Set();
+  const sname = n => { let b = String(n).replace(/[\[\]:*?\/\\]/g, '-').slice(0, 28) || 'Blatt', s = b, i = 2; while (used.has(s.toLowerCase())) s = b + ' ' + i++; used.add(s.toLowerCase()); return s; };
+  const r2 = x => x == null ? '' : Math.round(x * 100) / 100;
+  for (const c of db.classes) {
+    const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
+    const head = ['Nr.', 'Name'];
+    HJ.forEach((hj, i) => {
+      for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} krank`, `${q} verspätet`, `${q} Material`);
+      for (const e of ex[i]) head.push(`${e.title} (${e.quarter}${e.date ? ', ' + fmtDL(e.date) : ''})`);
+      head.push(`Ø mündl. ${hj.short} (Pkt.)`, `Ø schriftl. ${hj.short} (Pkt.)`, `${hj.short} (Pkt.)`, `${hj.short} Note`);
+    });
+    head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt');
+    const rows = [head];
+    c.students.forEach((s, si) => {
+      const r = calcStudent(c, s), row = [si + 1, s.name];
+      HJ.forEach((hj, i) => {
+        for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', o.abs || '', o.late || '', o.mat || ''); }
+        for (const e of ex[i]) row.push((db.examGrades[e.id] || {})[s.id] || '');
+        row.push(r2(r.h[i].mdl), r2(r.h[i].schr), r2(r.h[i].tot), gradeOf(r.h[i].tot));
+      });
+      row.push(r2(r.year), gradeOf(r.year), r.abs || '', r.late || '', r.mat || '');
+      rows.push(row);
+    });
+    rows.push([]); const note = ['', '* = manuell festgelegte Quartalsnote. Stand: ' + new Date(db.updated).toLocaleString('de-DE')]; rows.push(note);
+    sheets.push({name: sname(c.name), xml: sheetXml(rows, [5, 24, ...Array(head.length - 2).fill(11)], [2, 1])});
+  }
+  // Rohdaten: alle Tagesnoten
+  const raw = [['Lerngruppe', 'Datum', 'Stunde', 'Quartal', 'Name', 'Note', 'Punkte', 'krank', 'verspätet', 'Material vergessen', 'Notiz zur Person', 'Thema der Stunde']];
+  const Ls = Object.values(db.lessons).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.period - b.period);
+  for (const L of Ls) {
+    const c = cls(L.classId); if (!c) continue;
+    if (L.status) { raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', L.status === 'ausfall' ? '(Ausfall)' : '(ohne Noten)', '', '', '', '', '', '', L.topic || '']); continue; }
+    for (const s of c.students) {
+      const g = L.grades[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id];
+      if (!g && !a && !m && !note && !l) continue;
+      raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', s.name, g || '', g ? pts(g) : '', a ? 'ja' : '', l ? 'ja' : '', m ? 'ja' : '', note || '', L.topic || '']);
+    }
+  }
+  sheets.push({name: sname('Tagesnoten'), xml: sheetXml(raw, [12, 11, 7, 8, 24, 7, 7, 7, 9, 10, 40, 30], [0, 1])});
+
+  const files = [
+    {name: '[Content_Types].xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`},
+    {name: '_rels/.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name: 'xl/workbook.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`},
+    {name: 'xl/_rels/workbook.xml.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name: 'xl/styles.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="2" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs></styleSheet>`},
+    ...sheets.map((s, i) => ({name: `xl/worksheets/sheet${i + 1}.xml`, text: s.xml}))
+  ];
+  downloadBlob(zipBlob(files, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'), `Notenuebersicht_Deutsch_${db.settings.year.replace('/', '-')}_${stamp()}.xlsx`);
+}
+
+function exportIcs() {
+  const S = db.settings;
+  const end = (S.quarters[3].end || '2027-07-31').replace(/-/g, '');
+  const now = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+  const icsEsc = s => s.replace(/\\/g, '\\\\').replace(/[,;]/g, m => '\\' + m);
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Notenbuch Deutsch//DE', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Notenbuch Erinnerung'];
+  let count = 0;
+  for (let w = 1; w <= 5; w++) {
+    const items = [];
+    for (const c of db.classes) for (const t of c.timetable) if (t.wd === w) items.push({p: t.p, n: c.name});
+    if (!items.length) continue;
+    items.sort((a, b) => a.p - b.p);
+    let d = today(); while (wd(d) !== w) d = addDays(d, 1);
+    const tm = 'T' + reminderTime(w).replace(':', '') + '00', ex = [];
+    for (const h of S.holidays) if (h.start) { let x = h.start; while (x <= (h.end || h.start)) { if (wd(x) === w && x >= d) ex.push(x.replace(/-/g, '') + tm); x = addDays(x, 1); } }
+    const sum = 'Noten eintragen: ' + items.map(i => `${i.n} (${i.p}.)`).join(', ');
+    L.push('BEGIN:VEVENT', `UID:notenbuch-${w}-${Date.now()}@notenbuch`, `DTSTAMP:${now}`, `DTSTART:${d.replace(/-/g, '')}${tm}`, 'DURATION:PT10M',
+      `RRULE:FREQ=WEEKLY;BYDAY=${['', 'MO', 'TU', 'WE', 'TH', 'FR'][w]};UNTIL=${end}T235959`, ...(ex.length ? ['EXDATE:' + ex.join(',')] : []),
+      `SUMMARY:${icsEsc(sum)}`, `DESCRIPTION:${icsEsc('Mündliche Noten und Hausaufgaben im Notenbuch eintragen.' + (location.protocol === 'https:' ? ' ' + location.href.split('#')[0] : ''))}`,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsEsc(sum)}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+    count++;
+  }
+  L.push('END:VCALENDAR');
+  if (!count) return alert('Bitte zuerst einen Stundenplan eintragen.');
+  downloadBlob(new Blob([L.join('\r\n')], {type: 'text/calendar'}), 'Notenbuch-Erinnerung.ics');
+}
+
+/* ================= Gesprächsnotizen (Elternsprechtag) ================= */
+// „Nachname, Vorname“ oder „Vorname Nachname“
+function nameParts(s) {
+  if (s.name.includes(',')) { const [l, f] = s.name.split(','); return {first: (f || '').trim() || l.trim(), last: f ? l.trim() : ''}; }
+  const t = s.name.trim().split(/\s+/); return {first: t[0], last: t.length > 1 ? t.slice(1).join(' ') : ''};
+}
+const firstName = s => nameParts(s).first.split(/\s+/)[0];
+const fmtDS = s => { const d = parseISO(s); return d.getDate() + '.' + (d.getMonth() + 1) + '.'; };
+
+// Fakten für Bericht, Offline-Text und KI aus denselben Zahlen
+function studentFacts(c, s) {
+  const r = calcStudent(c, s);
+  const qs = QS.filter(q => r.q[q].n > 0 || r.q[q].override);
+  const exams = c.exams.slice().sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : 1)
+    .map(e => ({e, g: (db.examGrades[e.id] || {})[s.id]})).filter(x => x.g);
+  const notes = QS.flatMap(q => r.q[q].items.filter(it => it.note));
+  return {r, qs, exams, notes};
+}
+
+// Variante B: regelbasiert, komplett offline
+function offlineTalkNotes(c, s) {
+  const {r, qs, exams, notes} = studentFacts(c, s), fn = firstName(s);
+  const oral = avg(qs.map(q => r.q[q].final).filter(x => x != null));
+  const writ = exams.length ? avg(exams.map(x => pts(x.g))) : null;
+  const nGrades = QS.reduce((a, q) => a + r.q[q].n, 0);
+  const lvl = p => p >= 13 ? 'sehr gut' : p >= 10 ? 'gut' : p >= 7 ? 'befriedigend' : p >= 4 ? 'ausreichend' : 'nicht ausreichend';
+  const L = [], strong = [], weak = [], talk = [], home = [];
+
+  const stand = HJ.map((hj, i) => r.h[i].tot != null ? `${hj.short}: ${gradeOf(r.h[i].tot)}` : null).filter(Boolean);
+  L.push('Kurzüberblick:');
+  L.push(`• ${fn}: ${oral != null ? `mündlich ${lvl(oral)} (Ø ${gradeOf(oral)})` : 'noch keine mündlichen Noten'}${writ != null ? `, schriftlich ${lvl(writ)} (Ø ${gradeOf(writ)})` : ''}.${stand.length ? ' Stand ' + stand.join(', ') + '.' : ''}`);
+
+  if (oral != null && oral >= 10) strong.push(`gute mündliche Mitarbeit (Ø ${gradeOf(oral)} aus ${nGrades} Tagesnoten)`);
+  if (writ != null && writ >= 10) strong.push(`Klassenarbeiten im guten Bereich (${exams.map(x => `${x.e.title}: ${x.g}`).join(', ')})`);
+  if (oral != null && oral < 7) weak.push(`mündliche Mitarbeit ausbaufähig (Ø ${gradeOf(oral)})`);
+  if (writ != null && writ < 7) weak.push(`Klassenarbeiten unter „befriedigend“ (${exams.map(x => `${x.e.title}: ${x.g}`).join(', ')})`);
+  if (oral != null && writ != null && Math.abs(oral - writ) >= 3)
+    (oral > writ ? weak : strong).push(oral > writ ? 'mündlich deutlich stärker als schriftlich' : 'schriftlich deutlich stärker als mündlich');
+  // Entwicklung über die Quartale
+  const qv = qs.map(q => r.q[q].final).filter(x => x != null);
+  if (qv.length >= 2) { const d = qv[qv.length - 1] - qv[0];
+    if (d >= 2) strong.push(`mündlich verbessert (${qs[0]}: ${gradeOf(qv[0])} → ${qs[qs.length - 1]}: ${gradeOf(qv[qv.length - 1])})`);
+    if (d <= -2) weak.push(`mündlich nachgelassen (${qs[0]}: ${gradeOf(qv[0])} → ${qs[qs.length - 1]}: ${gradeOf(qv[qv.length - 1])})`); }
+  if (exams.length >= 2) { const d = pts(exams[exams.length - 1].g) - pts(exams[0].g);
+    if (d >= 3) strong.push(`Klassenarbeiten verbessert (${exams[0].g} → ${exams[exams.length - 1].g})`);
+    if (d <= -3) weak.push(`Klassenarbeiten verschlechtert (${exams[0].g} → ${exams[exams.length - 1].g})`); }
+  if (r.mat >= 2) weak.push(`${r.mat}× Material vergessen`);
+  if (r.late >= 2) weak.push(`${r.late}× verspätet`);
+  if (r.abs >= 3) weak.push(`${r.abs}× krank gefehlt`);
+  if (r.mat === 0 && r.late === 0 && nGrades >= 3) strong.push('zuverlässig: Material immer dabei, pünktlich');
+
+  L.push('', 'Stärken:'); L.push(...(strong.length ? strong.map(x => '• ' + x) : ['• (aus den Daten nicht erkennbar – eigene Beobachtung ergänzen)']));
+  L.push('', 'Entwicklungsfelder:'); L.push(...(weak.length ? weak.map(x => '• ' + x) : ['• keine Auffälligkeiten in den Daten']));
+  if (notes.length) { L.push('', 'Deine Notizen:'); L.push(...notes.map(it => `• ${fmtDS(it.d)} ${it.note}`)); }
+
+  if (strong.length) talk.push(`Mit dem Positiven beginnen: ${strong[0]}.`);
+  if (oral != null && oral < 7) { talk.push(`Wie erleben Sie ${fn} zu Hause – traut sich ${fn}, vor anderen zu sprechen?`); home.push('beim Abendessen vom Schultag oder einem Buch erzählen lassen'); }
+  if (writ != null && writ < 7) { talk.push('Gemeinsam schauen: Woran lag es in den Klassenarbeiten (Rechtschreibung, Textverständnis, Zeit)?'); home.push('regelmäßig (täglich 15 Min.) lesen, kurze Texte schreiben und gemeinsam überarbeiten'); }
+  if (r.mat >= 2) { talk.push('Material ansprechen: Gibt es eine feste Routine zum Ranzenpacken?'); home.push('Ranzen am Vorabend nach Stundenplan packen'); }
+  if (r.late >= 2) talk.push('Verspätungen ansprechen: Gibt es Gründe (Schulweg, Bus)?');
+  if (r.abs >= 3) talk.push('Fehlzeiten: Wie wird verpasster Stoff nachgeholt?');
+  if (nGrades < 3) talk.push('Wenige mündliche Noten – eigene Eindrücke aus dem Unterricht ergänzen.');
+  if (!weak.length) talk.push(`Lob weitergeben und fragen, was ${fn} im Fach Freude macht.`);
+  L.push('', 'Gesprächspunkte:'); L.push(...talk.map(x => '• ' + x));
+  if (home.length) { L.push('', 'Vorschläge für zu Hause:'); L.push(...home.map(x => '• ' + x)); }
+  return L.join('\n');
+}
+
+// Variante A: KI (optional) – nur pseudonymisierte Daten verlassen das Gerät
+const AIKEY = 'notenbuch-ai';
+let aiCfg = null; try { aiCfg = JSON.parse(localStorage.getItem(AIKEY)); } catch (e) {}
+const AI_MODEL = 'claude-opus-5-5';
+const AI_SYSTEM = `Du hilfst einer Deutschlehrkraft, ein Gespräch am Elternsprechtag vorzubereiten. Du bekommst pseudonymisierte Daten zu einem Kind; es heißt in den Daten [NAME], sein Familienname (z. B. bei den Eltern) ist [FAMILIENNAME], andere Kinder heißen [MITSCHÜLER:IN]. Übernimm diese Platzhalter unverändert.
+
+Schreibe Gesprächsnotizen für die Lehrkraft auf Deutsch, stichpunktartig, mit genau diesen Abschnitten (jeweils eine Zeile mit Doppelpunkt als Überschrift, darunter Zeilen mit „• “):
+Kurzüberblick:
+Stärken:
+Entwicklungsfelder:
+Gesprächspunkte:
+Vorschläge für zu Hause:
+
+Regeln:
+- Nutze nur die gelieferten Daten. Erfinde keine Ereignisse, Ursachen, Diagnosen oder Familienumstände. Wenn die Daten für eine Aussage zu dünn sind, schreib das.
+- Bei „Gesprächspunkte“ gib wertschätzende, konkrete Formulierungen oder Fragen an die Eltern, ohne Fachjargon.
+- Notensystem: 1 = sehr gut bis 6 = ungenügend; Punkte 15 = 1+ bis 0 = 6. Tagesnoten sind mündliche Eindrücke (1 bis 5).
+- Kein Markdown (keine #, keine **), höchstens etwa 250 Wörter.
+- Verwende für das Kind immer „[NAME]“.`;
+
+function pseudonymize(c, s, text) {
+  const reps = [];
+  for (const st of c.students) {
+    const own = st.id === s.id, {first, last} = nameParts(st);
+    const add = (p, tag) => p.split(/[,\s]+/).concat([p]).map(x => x.trim()).filter(x => x.length >= 3).forEach(x => reps.push([x, tag]));
+    reps.push([st.name.trim(), own ? '[NAME] [FAMILIENNAME]' : '[MITSCHÜLER:IN]']);
+    if (last) reps.push([`${first} ${last}`, own ? '[NAME] [FAMILIENNAME]' : '[MITSCHÜLER:IN]']);
+    add(first, own ? '[NAME]' : '[MITSCHÜLER:IN]');
+    if (last) add(last, own ? '[FAMILIENNAME]' : '[MITSCHÜLER:IN]');
+  }
+  // längere Treffer zuerst; bei gleichem Text gewinnt der erste Eintrag (vollständiger Name)
+  const seen = new Set(); reps.splice(0, reps.length, ...reps.filter(([p]) => !seen.has(p.toLowerCase()) && seen.add(p.toLowerCase())));
+  reps.sort((a, b) => b[0].length - a[0].length);
+  for (const [p, tag] of reps) {
+    const re = new RegExp(`(?<![\\p{L}])${p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`, 'giu');
+    text = text.replace(re, tag);
+  }
+  return text;
+}
+function aiPayload(c, s) {
+  const {r, exams, notes} = studentFacts(c, s);
+  const grade = (c.name.match(/\d+/) || [''])[0];
+  const L = [`Fach: Deutsch${grade ? `, Jahrgangsstufe ${grade}` : ''}, Schuljahr ${db.settings.year}`, '', 'Mündliche Mitarbeit je Quartal:'];
+  for (const q of QS) { const o = r.q[q]; if (!o.n && !o.abs && !o.mat && !o.late && !o.override) continue;
+    L.push(`- ${q}: ${o.final != null ? `Note ${gradeOf(o.final)}${o.override ? ' (von der Lehrkraft festgelegt)' : ''}` : 'keine Note'}${o.n ? `, Ø ${fmtN(o.mean, 1)} Punkte aus ${o.n} Tagesnoten` : ''}; krank ${o.abs}×, verspätet ${o.late}×, Material vergessen ${o.mat}×`);
+    const g = o.items.filter(it => it.g).map(it => `${fmtDS(it.d)} ${it.g}`); if (g.length) L.push(`  Tagesnoten: ${g.join(', ')}`); }
+  L.push('', 'Klassenarbeiten:'); L.push(...(exams.length ? exams.map(x => `- ${x.e.title} (${x.e.quarter}${x.e.date ? ', ' + fmtDS(x.e.date) : ''}): ${x.g}`) : ['- noch keine']));
+  L.push('', 'Halbjahres-/Jahresnoten:'); HJ.forEach((hj, i) => L.push(`- ${hj.name}: ${r.h[i].tot != null ? `${gradeOf(r.h[i].tot)} (${fmtN(r.h[i].tot, 1)} Punkte; mündlich ${fmtN(r.h[i].mdl, 1)}, schriftlich ${fmtN(r.h[i].schr, 1)})` : 'noch offen'}`));
+  L.push('', 'Notizen der Lehrkraft:'); L.push(...(notes.length ? notes.map(it => `- ${fmtDS(it.d)}: ${it.note}`) : ['- keine']));
+  return pseudonymize(c, s, L.join('\n'));
+}
+async function aiTalkNotes(c, s, payload) {
+  let Anthropic;
+  try { ({default: Anthropic} = await import('https://esm.sh/@anthropic-ai/sdk')); }
+  catch (e) { throw new Error('Die KI-Bibliothek konnte nicht geladen werden. Besteht eine Internetverbindung?'); }
+  const client = new Anthropic({apiKey: aiCfg.key, dangerouslyAllowBrowser: true});
+  let resp;
+  try {
+    resp = await client.beta.messages.create({
+      model: AI_MODEL, max_tokens: 16000,
+      betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+      output_config: {effort: 'low'},
+      system: AI_SYSTEM,
+      messages: [{role: 'user', content: payload}],
+    });
+  } catch (e) {
+    if (e instanceof Anthropic.AuthenticationError) throw new Error('Der API-Schlüssel ist ungültig (Einstellungen → KI).');
+    if (e instanceof Anthropic.RateLimitError) throw new Error('Zu viele Anfragen – bitte kurz warten und erneut versuchen.');
+    if (e instanceof Anthropic.APIConnectionError) throw new Error('Keine Verbindung zur KI. Besteht eine Internetverbindung?');
+    if (e instanceof Anthropic.APIError) throw new Error(`Fehler der KI (${e.status || '?'}): ${e.message}`);
+    throw e;
+  }
+  if (resp.stop_reason === 'refusal') throw new Error('Die KI hat die Anfrage abgelehnt. Bitte die Offline-Variante verwenden.');
+  const text = resp.content.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  if (!text) throw new Error('Die KI hat keinen Text geliefert.');
+  return text.replace(/\[NAME\]/g, firstName(s)).replace(/\[FAMILIENNAME\]/g, nameParts(s).last || '');
+}
+
+function talkSection(c, s) {
+  const t = c.talk[s.id];
+  return `<h3>Gesprächsnotizen Elternsprechtag</h3>
+    <div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-act="talkoff" data-s="${s.id}">📝 Erstellen (offline)</button>${aiCfg && aiCfg.on && aiCfg.key ? `<button class="btn sm pri" data-act="talkai" data-s="${s.id}">✨ Mit KI formulieren</button>` : ''}</div>
+    ${t ? `<textarea id="talk-ta" style="min-height:220px" data-chg="talk" data-s="${s.id}">${esc(t.text)}</textarea>
+      <div class="small muted">${t.src === 'ki' ? '✨ KI-Entwurf' : '📝 Offline-Entwurf'} vom ${new Date(t.at).toLocaleDateString('de-DE')} – bitte prüfen und anpassen, Änderungen werden gespeichert.</div>` : '<div class="small muted">Noch keine Gesprächsnotizen.</div>'}`;
+}
+
+/* ================= Dunkelmodus ================= */
+const themePref = () => localStorage.getItem('notenbuch-theme') || 'auto';
+function applyTheme() {
+  const p = themePref(), dark = p === 'dark' || (p === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.classList.toggle('dark', dark);
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#0b1220' : '#1e3a8a';
+}
+
+/* ================= Wer kommt dran? ================= */
+// Zufall, aber fair: Wer im Quartal wenige Tagesnoten hat, wird deutlich häufiger gezogen.
+function randomPick() {
+  const [cid, d] = ui.lesson.split('|'), c = cls(cid), L = db.lessons[ui.lesson] || {grades: {}, absent: {}}, q = quarterOf(d);
+  let cand = c.students.filter(s => !(L.absent || {})[s.id] && !(L.grades || {})[s.id]);
+  if (cand.length > 1) cand = cand.filter(s => s.id !== ui.lastPick);
+  if (!cand.length) return toast('Alle Anwesenden haben heute schon einen Smiley');
+  const w = cand.map(s => 1 / Math.pow(1 + (q ? quarterStats(c, s, q).n : 0), 2));
+  let x = Math.random() * w.reduce((a, b) => a + b, 0), i = 0;
+  while (x > w[i] && i < w.length - 1) x -= w[i++];
+  const s = cand[i], n = q ? quarterStats(c, s, q).n : 0;
+  ui.lastPick = s.id;
+  showSheet(`<div class="row"><b class="grow muted">🎲 Wer kommt dran?</b><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="pick-name">${esc(s.name)}</div>
+    <div class="small muted" style="text-align:center">${q ? `im ${q} bisher ${n} Tagesnote${n === 1 ? '' : 'n'}` : ''}</div>
+    <div class="smrow" style="margin:14px 0 10px">${SMILEYS.map(([g, e]) => `<button class="smb" data-act="picksmile" data-s="${s.id}" data-g="${g}">${e}<span>${g}</span></button>`).join('')}</div>
+    <div class="row"><button class="btn grow" data-act="random">🎲 Andere Person</button></div>`);
+}
+
+/* ================= Hinweise ================= */
+function warnings(onlyCid) {
+  const t = today(), q = quarterOf(t); if (!q) return [];
+  const S = db.settings, Q = S.quarters.find(x => x.id === q);
+  const elapsed = (parseISO(t) - parseISO(Q.start)) / Math.max(1, parseISO(Q.end) - parseISO(Q.start));
+  const hi = HJ.findIndex(h => h.qs.includes(q)), hj = HJ[hi], out = [];
+  for (const c of db.classes) {
+    if (onlyCid && c.id !== onlyCid) continue;
+    for (const s of c.students) {
+      const r = calcStudent(c, s), o = r.q[q];
+      const mat = hj.qs.reduce((a, x) => a + r.q[x].mat, 0), late = hj.qs.reduce((a, x) => a + r.q[x].late, 0);
+      if (o.final != null && o.final <= 3) out.push({c, s, icon: '📉', txt: `steht mündlich im ${q} auf ${gradeOf(o.final)}`});
+      else if (r.h[hi].tot != null && rnd(r.h[hi].tot) <= 3) out.push({c, s, icon: '📉', txt: `steht im ${hj.short} auf ${gradeOf(r.h[hi].tot)}`});
+      if (+S.warnMinGrades > 0 && elapsed >= 0.5 && o.n < +S.warnMinGrades) out.push({c, s, icon: '🔍', txt: `hat im ${q} erst ${o.n} Tagesnote${o.n === 1 ? '' : 'n'}`});
+      if (+S.warnMat > 0 && mat >= +S.warnMat) out.push({c, s, icon: '🎒', txt: `hat im ${hj.name} ${mat}× Material vergessen`});
+      if (+S.warnLate > 0 && late >= +S.warnLate) out.push({c, s, icon: '⏰', txt: `kam im ${hj.name} ${late}× zu spät`});
+    }
+  }
+  return out;
+}
+const warnList = ws => ws.map(w => `<div class="warn-item" data-act="warnopen" data-c="${w.c.id}" data-s="${w.s.id}"><span>${w.icon}</span><div class="grow"><b>${esc(w.s.name)}</b> <span class="muted small">${esc(w.c.name)}</span><div class="small">${esc(w.txt)}</div></div><span class="muted">›</span></div>`).join('');
+function openWarnSheet() {
+  const ws = warnings();
+  showSheet(`<div class="row"><h2 class="grow">⚠ Hinweise</h2><button class="btn sm" data-act="closesheet">✕</button></div>` +
+    (ws.length ? warnList(ws) : '<div class="muted">Keine Auffälligkeiten 🎉</div>') +
+    `<p class="help">Grenzen einstellbar unter Einstellungen → Hinweise. „Wenige Noten“ erscheint erst ab der Hälfte des Quartals.</p>`);
+}
+
+/* ================= Schülerbericht ================= */
+function reportHtml(c, s, opt) {
+  const r = calcStudent(c, s), dash = x => (x == null || x === '') ? '–' : x;
+  let h = `<div class="rep"><h1>${esc(s.name)}</h1><div>Deutsch · ${esc(c.name)} · Schuljahr ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')}</div>`;
+  h += `<h2>Mündliche Mitarbeit</h2><table><tr><th>Quartal</th><th>Note</th><th>Tagesnoten</th><th>krank</th><th>verspätet</th><th>Material vergessen</th></tr>` +
+    QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td><b>${dash(o.final == null ? '' : gradeOf(o.final))}</b></td><td>${o.n}</td><td>${o.abs}</td><td>${o.late}</td><td>${o.mat}</td></tr>`; }).join('') + `</table>`;
+  const ex = c.exams.slice().sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : 1);
+  h += `<h2>Klassenarbeiten</h2><table><tr><th>Arbeit</th><th>Datum</th><th>Note</th></tr>` +
+    ex.map(e => `<tr><td>${esc(e.title)}</td><td>${dash(fmtDL(e.date))}</td><td><b>${dash((db.examGrades[e.id] || {})[s.id])}</b></td></tr>`).join('') + `</table>`;
+  h += `<h2>Gesamt</h2><table><tr><th></th><th>mündlich (Ø Punkte)</th><th>schriftlich (Ø Punkte)</th><th>Note</th></tr>` +
+    HJ.map((hj, i) => `<tr><td>${hj.name}</td><td>${dash(fmtN(r.h[i].mdl, 1))}</td><td>${dash(fmtN(r.h[i].schr, 1))}</td><td><b>${dash(r.h[i].tot == null ? '' : gradeOf(r.h[i].tot))}</b></td></tr>`).join('') +
+    `<tr><td>Schuljahr</td><td></td><td></td><td><b>${dash(r.year == null ? '' : gradeOf(r.year))}</b></td></tr></table>`;
+  if (opt.notes) {
+    const ns = QS.flatMap(q => r.q[q].items.filter(it => it.note));
+    h += `<h2>Notizen</h2>` + (ns.length ? `<table>${ns.map(it => `<tr><td style="width:85px">${fmtDL(it.d)}</td><td>${esc(it.note)}</td></tr>`).join('')}</table>` : '<div>keine</div>');
+  }
+  if (opt.talk && (c.talk || {})[s.id]) h += `<h2>Vorbereitung Gespräch</h2><div style="white-space:pre-wrap">${esc(c.talk[s.id].text)}</div>`;
+  if (opt.lines) h += `<h2>Gesprächsnotizen</h2>` + '<div style="border-bottom:1px solid #888;height:28px"></div>'.repeat(7);
+  return h + `</div>`;
+}
+function reportOptions(btnAct, extra = '') {
+  return `<div class="row wrap small" style="margin:6px 0 8px"><label><input type="checkbox" id="rep-notes" checked> Notizen mitdrucken</label><label><input type="checkbox" id="rep-talk" checked> Gesprächsnotizen mitdrucken</label><label><input type="checkbox" id="rep-lines" checked> Linien für Gesprächsnotizen</label></div>
+    <button class="btn pri" data-act="${btnAct}" ${extra}>🖨 Drucken / als PDF speichern</button>`;
+}
+function printReports(c, list) {
+  const opt = {notes: $('#rep-notes').checked, lines: $('#rep-lines').checked, talk: $('#rep-talk').checked};
+  $('#print').innerHTML = list.map(s => reportHtml(c, s, opt)).join('');
+  closeSheet();
+  setTimeout(() => window.print(), 100);
+}
+window.addEventListener('afterprint', () => { $('#print').innerHTML = ''; });
+
+/* ================= Notenliste Zeugniskonferenz ================= */
+// „knapp“ = ungerundete Punkte liegen höchstens 0,25 von der Rundungsgrenze x,5 entfernt
+const isClose = p => p != null && Math.abs((p - Math.floor(p)) - 0.5) <= 0.25;
+const altGrade = p => gradeOf(p - Math.floor(p) >= 0.5 ? Math.floor(p) : Math.floor(p) + 1);
+function conferenceHtml(c, which) {
+  const hi = which === 'hj1' ? 0 : 1, hj = HJ[hi], year = which === 'jahr';
+  const rows = c.students.map((s, i) => ({i, s, r: calcStudent(c, s)}));
+  const key = x => year ? x.r.year : x.r.h[hi].tot;
+  const dist = {}; for (const x of rows) { const p = key(x); if (p != null) { const g = gradeOf(p)[0]; dist[g] = (dist[g] || 0) + 1; } }
+  const pp = x => x == null ? '–' : fmtN(x, 2);
+  let h = `<div class="rep conf"><h1>Notenliste Deutsch – ${esc(c.name)}</h1><div>${year ? 'Schuljahr' : hj.name} ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')} · mündlich ${db.settings.oralWeight} % / schriftlich ${100 - db.settings.oralWeight} %</div>
+    <table style="margin-top:8px"><tr><th>Nr.</th><th>Name</th>${hj.qs.map(q => `<th>${q} mdl.</th>`).join('')}<th>Ø mdl.</th><th>Ø schr.</th><th>${hj.short} Pkt.</th><th>${hj.short} Note</th>${year ? `<th>${HJ[0].short} Note</th><th>Jahr Pkt.</th><th>Jahresnote</th>` : ''}<th>krank</th><th>Bemerkung</th></tr>`;
+  for (const x of rows) {
+    const r = x.r, h2 = r.h[hi], p = key(x), close = isClose(p);
+    const abs = hj.qs.reduce((a, q) => a + r.q[q].abs, 0) + (year ? HJ[0].qs.reduce((a, q) => a + r.q[q].abs, 0) : 0);
+    h += `<tr${close ? ' class="close"' : ''}><td>${x.i + 1}</td><td>${esc(x.s.name)}</td>${hj.qs.map(q => `<td>${r.q[q].final == null ? '–' : gradeOf(r.q[q].final) + (r.q[q].override ? '*' : '')}</td>`).join('')}
+      <td>${pp(h2.mdl)}</td><td>${pp(h2.schr)}</td><td>${pp(h2.tot)}</td><td><b>${h2.tot == null ? '–' : gradeOf(h2.tot)}</b></td>
+      ${year ? `<td>${r.h[0].tot == null ? '–' : gradeOf(r.h[0].tot)}</td><td>${pp(r.year)}</td><td><b>${r.year == null ? '–' : gradeOf(r.year)}</b></td>` : ''}
+      <td>${abs || ''}</td><td>${close ? `⚖ knapp – auch ${altGrade(p)} vertretbar` : ''}</td></tr>`;
+  }
+  h += `</table><h2>Notenspiegel</h2><table style="width:auto"><tr>${['1', '2', '3', '4', '5', '6'].map(g => `<th style="text-align:center;width:44px">${g}</th>`).join('')}<th>Ø</th></tr>
+    <tr>${['1', '2', '3', '4', '5', '6'].map(g => `<td style="text-align:center">${dist[g] || 0}</td>`).join('')}<td>${(() => { const a = avg(rows.map(key).filter(x => x != null)); return a == null ? '–' : `${fmtN(a, 1)} P. (${gradeOf(a)})`; })()}</td></tr></table>
+    <p style="font-size:9pt">⚖ knapp = die ungerundeten Punkte liegen höchstens 0,25 von der Rundungsgrenze entfernt. * = Quartalsnote von der Lehrkraft festgelegt.</p></div>`;
+  return h;
+}
+function printConference(which) {
+  const c = curCls();
+  $('#print').innerHTML = `<style>@page{size:A4 landscape;margin:12mm}.conf tr.close td{background:#fef9c3}</style>` + conferenceHtml(c, which);
+  closeSheet(); setTimeout(() => window.print(), 100);
+}
+
+/* ================= PIN-Sperre ================= */
+// Die PIN gilt nur für dieses Gerät und ist nicht Teil der Sicherung.
+const PINKEY = 'notenbuch-pin';
+let pinCfg = null; try { pinCfg = JSON.parse(localStorage.getItem(PINKEY)); } catch (e) {}
+let locked = false, pinEntry = '', pinFails = 0, pinBlockUntil = 0, hiddenAt = 0;
+async function hashPin(pin, salt) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function lockApp() {
+  if (!pinCfg) return;
+  locked = true; pinEntry = ''; closeSheet(); $('#main').innerHTML = ''; renderLock();
+}
+function renderLock(msg = '') {
+  const el = $('#lock'); el.classList.remove('hidden');
+  el.innerHTML = `<div style="font-size:40px">🔒</div><b>Notenbuch Deutsch</b>
+    <div class="dots">${Array.from({length: pinCfg.len}, (_, i) => `<i class="${i < pinEntry.length ? 'f' : ''}"></i>`).join('')}</div>
+    <div class="msg">${esc(msg)}</div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-pin="${n}">${n}</button>`).join('')}<button data-pin="forgot" style="font-size:11px">PIN<br>vergessen</button><button data-pin="0">0</button><button data-pin="del">⌫</button></div>`;
+}
+async function pinKey(k) {
+  if (Date.now() < pinBlockUntil) return renderLock(`Zu viele Fehlversuche – bitte ${Math.ceil((pinBlockUntil - Date.now()) / 1000)} s warten`);
+  if (k === 'forgot') {
+    if (confirm('PIN vergessen?\n\nDie App lässt sich dann nur entsperren, indem ALLE Daten auf diesem Gerät gelöscht werden. Danach kannst du deine letzte Sicherung laden.') && confirm('Wirklich alle Daten auf diesem Gerät löschen?')) {
+      localStorage.removeItem(KEY); localStorage.removeItem(PINKEY); location.reload();
+    }
+    return;
+  }
+  if (k === 'del') pinEntry = pinEntry.slice(0, -1); else if (pinEntry.length < pinCfg.len) pinEntry += k;
+  if (pinEntry.length === pinCfg.len) {
+    const ok = (await hashPin(pinEntry, pinCfg.salt)) === pinCfg.hash;
+    pinEntry = '';
+    if (ok) { locked = false; pinFails = 0; $('#lock').classList.add('hidden'); $('#lock').innerHTML = ''; render(); return; }
+    pinFails++; if (pinFails >= 5) pinBlockUntil = Date.now() + 30000 * (pinFails - 4);
+    return renderLock('Falsche PIN');
+  }
+  renderLock();
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-pin]'); if (b && locked) pinKey(b.dataset.pin); });
+document.addEventListener('keydown', e => { if (!locked) return; if (/^\d$/.test(e.key)) pinKey(e.key); else if (e.key === 'Backspace') pinKey('del'); });
+document.addEventListener('visibilitychange', () => {
+  if (!pinCfg || locked) return;
+  if (document.hidden) { hiddenAt = Date.now(); if (!+pinCfg.lockAfter) lockApp(); }
+  else if (hiddenAt && Date.now() - hiddenAt >= (+pinCfg.lockAfter || 0) * 60000) lockApp();
+});
+
+/* ================= Aktionen ================= */
+const ACT = {
+  tab: d => { ui.tab = d.t; ui.lesson = null; ui.examId = null; window.scrollTo(0, 0); if (d.t === 'heute') ui.agScrollTo = today(); render(); },
+  totoday: () => jumpTo(today()),
+  setcur: d => { ui.cls = d.c; render(); },
+  day: d => { ui.date = +d.n === 0 ? today() : addDays(ui.date, +d.n); render(); },
+  lesson: d => {
+    closeSheet();
+    if (ui.tab === 'heute' && !ui.lesson) ui.heuteY = scrollY;   // Position in der Tagesliste merken
+    else { const dd = d.k.split('|')[1]; if (dd < ui.agFrom || dd > ui.agTo) { ui.agFrom = addDays(dd, -14); ui.agTo = addDays(dd, 21); } ui.agScrollTo = dd; ui.heuteY = null; }
+    ui.tab = 'heute'; ui.lesson = d.k; ui.date = d.k.split('|')[1]; window.scrollTo(0, 0); render();
+  },
+  back: () => { ui.lesson = null; ui.examId = null; render(); },
+  pick: d => openPicker(d.k, d.s),
+  setgrade: d => {
+    const p = ui.pick; if (!p) return;
+    if (p.kind === 'lesson') { const L = ensureLesson(ui.lesson); if (d.g) { L.grades[p.sid] = d.g; L.status = ''; } else delete L.grades[p.sid]; }
+    else { const m = db.examGrades[ui.examId] ||= {}; if (d.g) m[p.sid] = d.g; else delete m[p.sid]; db.examMt[ui.examId] = Date.now(); }
+    save(); closeSheet(); render();
+    if (p.kind === 'exam' && d.g) { const st = curCls().students, i = st.findIndex(s => s.id === p.sid); if (st[i + 1]) openPicker('exam', st[i + 1].id); }
+  },
+  smile: d => { const L = ensureLesson(ui.lesson); if (L.grades[d.s] === d.g) delete L.grades[d.s]; else { L.grades[d.s] = d.g; L.status = ''; } save(); render(); },
+  abs: d => { const L = ensureLesson(ui.lesson);
+    if (L.absent[d.s]) delete L.absent[d.s];
+    else { if (L.grades[d.s] && !confirm('Die Tagesnote wird entfernt, weil die Person krank war. Fortfahren?')) return; L.absent[d.s] = 1; delete L.grades[d.s]; L.status = ''; }
+    save(); render(); },
+  mat: d => { const L = ensureLesson(ui.lesson); if (L.mat[d.s]) delete L.mat[d.s]; else { L.mat[d.s] = 1; L.status = ''; } save(); render(); },
+  late: d => { const L = ensureLesson(ui.lesson); if (L.late[d.s]) delete L.late[d.s]; else { L.late[d.s] = 1; L.status = ''; } save(); render(); },
+  random: () => randomPick(),
+  picksmile: d => { const L = ensureLesson(ui.lesson); L.grades[d.s] = d.g; L.status = ''; save(); closeSheet(); render(); toast(`${smiley(d.g)} eingetragen`); },
+  warnlist: () => openWarnSheet(),
+  warnopen: d => { closeSheet(); ui.cls = d.c; ui.tab = 'uebersicht'; ui.lesson = null; ui.examId = null; render(); studentSheet(d.s); },
+  print1: d => printReports(curCls(), curCls().students.filter(s => s.id === d.s)),
+  printallsheet: () => { const c = curCls(); showSheet(`<div class="row"><h2 class="grow">Berichte für ${esc(c.name)}</h2><button class="btn sm" data-act="closesheet">✕</button></div><div class="small muted">${c.students.length} Seiten, eine pro Person.</div>${reportOptions('printall')}`); },
+  printall: () => printReports(curCls(), curCls().students),
+  confsheet: () => {
+    const c = curCls();
+    showSheet(`<div class="row"><h2 class="grow">📋 Notenliste ${esc(c.name)}</h2><button class="btn sm" data-act="closesheet">✕</button></div>
+      <div class="small muted" style="margin-bottom:10px">Eine Seite im Querformat mit ungerundeten Punkten, Note und Notenspiegel. Grenzfälle (⚖ knapp) sind gelb markiert, damit du sie bewusst entscheidest.</div>
+      <div class="row wrap"><button class="btn pri" data-act="confprint" data-w="hj1">1. Halbjahr</button><button class="btn pri" data-act="confprint" data-w="hj2">2. Halbjahr</button><button class="btn pri" data-act="confprint" data-w="jahr">Schuljahr (Jahresnote)</button></div>`);
+  },
+  confprint: d => printConference(d.w),
+  setpin: async () => {
+    const a = $('#pin1').value, b = $('#pin2').value;
+    if (!/^\d{4,6}$/.test(a)) return alert('Die PIN muss aus 4 bis 6 Ziffern bestehen.');
+    if (a !== b) return alert('Die beiden Eingaben stimmen nicht überein.');
+    if (pinCfg) { const cur = prompt('Bitte zuerst die aktuelle PIN eingeben:'); if (cur == null) return; if ((await hashPin(cur, pinCfg.salt)) !== pinCfg.hash) return alert('Die aktuelle PIN ist falsch.'); }
+    const salt = uid() + uid();
+    pinCfg = {hash: await hashPin(a, salt), salt, len: a.length, lockAfter: pinCfg ? pinCfg.lockAfter : 1};
+    localStorage.setItem(PINKEY, JSON.stringify(pinCfg)); render(); toast('PIN gespeichert');
+  },
+  delpin: async () => {
+    const cur = prompt('Aktuelle PIN eingeben, um die Sperre auszuschalten:'); if (cur == null) return;
+    if ((await hashPin(cur, pinCfg.salt)) !== pinCfg.hash) return alert('Die PIN ist falsch.');
+    pinCfg = null; localStorage.removeItem(PINKEY); render(); toast('PIN-Sperre ausgeschaltet');
+  },
+  locknow: () => lockApp(),
+  importmerge: () => doImport('merge'),
+  importreplace: () => { if (confirm('Wirklich alle Daten auf diesem Gerät durch die Sicherung ersetzen?')) doImport('replace'); },
+  pickdir: () => pickBackupDir(),
+  loaddir: () => loadFromDir().catch(e => alert('Der Ordner konnte nicht gelesen werden: ' + e.message)),
+  snapnow: async () => { await snapAdd('Von Hand angelegt'); fillSnapList(); toast('Wiederherstellungspunkt angelegt'); },
+  snaprestore: async d => {
+    const x = await idbReq('snaps', 'readonly', s => s.get(+d.id)); if (!x) return;
+    if (!confirm(`Stand vom ${fmtStand(x.updated)} wiederherstellen?\n\nDer aktuelle Stand wird vorher als Wiederherstellungspunkt gesichert.`)) return;
+    await snapAdd('Vor dem Wiederherstellen');
+    db = migrate(JSON.parse(x.data)); db.updated = Date.now(); saveQuiet(); ui.lesson = null; ui.examId = null;
+    if (!cls(ui.cls)) ui.cls = db.classes[0]?.id;
+    render(); toast('Wiederhergestellt');
+  },
+  nrw: () => { const n = addNrwHolidays(db, true); save(); render(); toast(n ? `${n} Zeiträume ergänzt` : 'Alle NRW-Ferien sind bereits eingetragen'); },
+  talkoff: d => {
+    const c = curCls(), s = c.students.find(x => x.id === d.s);
+    if (c.talk[s.id] && !confirm('Vorhandene Gesprächsnotizen ersetzen?')) return;
+    c.talk[s.id] = {text: offlineTalkNotes(c, s), src: 'offline', at: Date.now()}; save(); studentSheet(s.id);
+  },
+  talkai: d => {
+    const c = curCls(), s = c.students.find(x => x.id === d.s);
+    showSheet(`<div class="row"><h2 class="grow">✨ KI-Gesprächsnotizen</h2><button class="btn sm" data-act="student" data-s="${s.id}">‹ Zurück</button></div>
+      <div class="small" style="margin-bottom:6px">Diese Daten werden an Anthropic (Claude) gesendet. Namen sind ersetzt – bitte kurz prüfen, ob in deinen Notizen noch etwas Persönliches steht:</div>
+      <pre class="preview">${esc(aiPayload(c, s))}</pre>
+      <div class="row"><button class="btn pri grow" data-act="talkaisend" data-s="${s.id}">Senden & formulieren</button></div>`);
+  },
+  talkaisend: async (d, btn) => {
+    const c = curCls(), s = c.students.find(x => x.id === d.s);
+    if (c.talk[s.id] && !confirm('Vorhandene Gesprächsnotizen ersetzen?')) return;
+    btn.disabled = true; btn.textContent = '⏳ Wird formuliert …';
+    try {
+      const text = await aiTalkNotes(c, s, aiPayload(c, s));
+      c.talk[s.id] = {text, src: 'ki', at: Date.now()}; save(); studentSheet(s.id);
+    } catch (e) { btn.disabled = false; btn.textContent = 'Erneut versuchen'; alert(e.message); }
+  },
+  aisave: () => {
+    const key = $('#ai-key').value.trim();
+    if (!/^sk-ant-/.test(key)) return alert('Das sieht nicht wie ein Anthropic-API-Schlüssel aus (beginnt mit „sk-ant-“).');
+    aiCfg = {on: true, key}; localStorage.setItem(AIKEY, JSON.stringify(aiCfg)); render(); toast('KI eingeschaltet');
+  },
+  aioff: () => { if (!confirm('KI ausschalten und API-Schlüssel von diesem Gerät löschen?')) return; aiCfg = null; localStorage.removeItem(AIKEY); render(); },
+  note: d => {
+    const L = db.lessons[ui.lesson] || {}, c = cls(ui.lesson.split('|')[0]), s = c.students.find(x => x.id === d.s);
+    ui.noteSid = d.s;
+    showSheet(`<div class="row"><b class="grow" style="font-size:18px">📝 ${esc(s.name)}</b><button class="btn sm" data-act="closesheet">✕</button></div>
+      <div class="small muted" style="margin:4px 0 8px">${fmtD(L.date || ui.lesson.split('|')[1])} · ${esc(c.name)}</div>
+      <textarea id="note-ta" style="min-height:110px" placeholder="z. B. sehr gute Beteiligung, störte, Elterngespräch …">${esc((L.notes || {})[d.s] || '')}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn pri grow" data-act="savenote">Speichern</button><button class="btn danger" data-act="savenote" data-clear="1">Löschen</button></div>`);
+    setTimeout(() => $('#note-ta').focus(), 50);
+  },
+  savenote: d => { const L = ensureLesson(ui.lesson), t = d.clear ? '' : $('#note-ta').value.trim(); if (t) { L.notes[ui.noteSid] = t; L.status = ''; } else delete L.notes[ui.noteSid]; save(); closeSheet(); render(); },
+  status: d => { const L = ensureLesson(ui.lesson); L.status = L.status === d.s ? '' : d.s; save(); render(); },
+  ausfallkey: d => { ensureLesson(d.k).status = 'ausfall'; save(); render(); openListSheet(); },
+  dellesson: () => { if (!confirm('Diese Stunde mit allen Einträgen löschen?')) return; delete db.lessons[ui.lesson]; db.deleted.lessons[ui.lesson] = Date.now(); ui.lesson = null; save(); render(); },
+  openlist: () => openListSheet(),
+  addlesson: d => { if (d.d) ui.date = d.d; addLessonSheet(); },
+  addlesson2: () => { const k = lk($('#al-c').value, ui.date, +$('#al-p').value); ensureLesson(k).extra = true; save(); closeSheet(); ui.lesson = k; render(); },
+  student: d => studentSheet(d.s),
+  exam: d => { ui.examId = d.e; window.scrollTo(0, 0); render(); },
+  addexam: () => { const c = curCls(), n = c.exams.length + 1; const e = {id: uid(), title: 'KA ' + n, quarter: 'Q1', date: '', weight: 1}; c.exams.push(e); save(); ui.examId = e.id; render(); },
+  delexam: () => { const c = curCls(); if (!confirm('Klassenarbeit mit allen Noten löschen?')) return; c.exams = c.exams.filter(e => e.id !== ui.examId); delete db.examGrades[ui.examId]; db.deleted.exams[ui.examId] = Date.now(); ui.examId = null; save(); render(); },
+  addclass: () => { const n = prompt('Name der neuen Lerngruppe:'); if (!n) return; const c = newClass(n.trim()); db.classes.push(c); ui.cls = c.id; save(); render(); },
+  delclass: async () => { const c = curCls(); if (!confirm(`Lerngruppe „${c.name}“ mit ALLEN Noten löschen?`)) return; await snapAdd(`Vor dem Löschen von ${c.name}`); db.deleted.classes[c.id] = Date.now(); db.classes = db.classes.filter(x => x.id !== c.id); for (const [k, L] of Object.entries(db.lessons)) if (L.classId === c.id) delete db.lessons[k]; for (const e of c.exams) delete db.examGrades[e.id]; ui.cls = db.classes[0]?.id; save(); render(); },
+  tt: d => { const c = curCls(), w = +d.w, p = +d.p, i = c.timetable.findIndex(t => t.wd === w && t.p === p); if (i >= 0) c.timetable.splice(i, 1); else c.timetable.push({wd: w, p}); save(); render(); },
+  addhol: () => { db.settings.holidays.push({start: today(), end: today(), name: ''}); save(); render(); },
+  delhol: d => { db.settings.holidays.splice(+d.i, 1); save(); render(); },
+  ics: () => exportIcs(),
+  share: () => shareBackup(),
+  download: async () => { const f = await backupFile(false); downloadBlob(f, f.name); markBackup(); },
+  setenc: async () => {
+    const a = $('#enc1').value, b = $('#enc2').value;
+    if (a.length < 8) return alert('Bitte mindestens 8 Zeichen verwenden.');
+    if (a !== b) return alert('Die beiden Eingaben stimmen nicht überein.');
+    const salt = b64e(crypto.getRandomValues(new Uint8Array(16)));
+    encCfg = {salt, iter: ENC_ITER, key: await deriveKeyRaw(a, salt, ENC_ITER)};
+    localStorage.setItem(ENCKEY, JSON.stringify(encCfg)); render();
+    toast('Verschlüsselung eingeschaltet – bitte jetzt eine neue Sicherung erstellen');
+  },
+  delenc: () => { if (!confirm('Verschlüsselung ausschalten? Neue Sicherungen sind dann wieder für jeden lesbar, der die Datei öffnet.')) return; encCfg = null; localStorage.removeItem(ENCKEY); render(); },
+  import: () => $('#importfile').click(),
+  xlsx: () => exportXlsx(),
+  wipe: async () => { if (!confirm('Wirklich ALLE Daten auf diesem Gerät löschen?')) return; if (!confirm('Sicher? Vorher wird ein Wiederherstellungspunkt angelegt.')) return; await snapAdd('Vor dem Löschen aller Daten'); db = migrate(defaults()); saveQuiet(); ui.cls = db.classes[0].id; render(); },
+  closesheet: () => closeSheet(),
+};
+
+const CHG = {
+  jump: el => { if (el.value) jumpTo(el.value); },
+  topic: el => { ensureLesson(ui.lesson).topic = el.value; save(); },
+  override: el => { const c = curCls(), o = c.overrides[el.dataset.s] ||= {}; if (el.value) o[el.dataset.q] = el.value; else delete o[el.dataset.q]; save(); render(); studentSheet(el.dataset.s); },
+  exam: el => { const e = curCls().exams.find(x => x.id === ui.examId), f = el.dataset.f; e[f] = f === 'weight' ? (Math.max(0.5, +el.value || 1)) : el.value; if (f === 'date' && el.value && quarterOf(el.value)) e.quarter = quarterOf(el.value); save(); render(); },
+  cname: el => { if (el.value.trim()) { curCls().name = el.value.trim(); save(); render(); } },
+  students: el => {
+    const c = curCls(), names = [...new Set(el.value.split('\n').map(s => s.trim()).filter(Boolean))];
+    const byName = new Map(c.students.map(s => [s.name, s]));
+    const removed = c.students.filter(s => !names.includes(s.name)), added = names.filter(n => !byName.has(n));
+    if (removed.length && removed.length === added.length && confirm('Als Umbenennung übernehmen (Noten bleiben erhalten)?\n\n' + removed.map((s, i) => `${s.name} → ${added[i]}`).join('\n'))) {
+      removed.forEach((s, i) => { s.name = added[i]; byName.set(added[i], s); });
+    } else if (removed.length && !confirm(`Entfernen: ${removed.map(s => s.name).join(', ')}\nIhre Noten werden nicht mehr angezeigt. Fortfahren?`)) { render(); return; }
+    c.students = names.map(n => byName.get(n) || {id: uid(), name: n});
+    for (const s of removed) if (!c.students.some(x => x.id === s.id)) db.deleted.students[s.id] = Date.now();
+    save(); render(); toast(`${c.students.length} Schüler:innen gespeichert`);
+  },
+  set: el => { const f = el.dataset.f; db.settings[f] = f === 'oralWeight' ? Math.min(100, Math.max(0, +el.value || 0)) : ['remOffset', 'warnMinGrades', 'warnMat', 'warnLate'].includes(f) ? Math.max(0, +el.value || 0) : el.value; save(); render(); },
+  quarter: el => { db.settings.quarters[+el.dataset.i][el.dataset.f] = el.value; save(); render(); },
+  talk: el => { const c = curCls(), t = c.talk[el.dataset.s]; if (t) { t.text = el.value; save(); } },
+  theme: el => { localStorage.setItem('notenbuch-theme', el.value); applyTheme(); },
+  lockafter: el => { pinCfg.lockAfter = +el.value; localStorage.setItem(PINKEY, JSON.stringify(pinCfg)); },
+  hol: el => { db.settings.holidays[+el.dataset.i][el.dataset.f] = el.value; save(); },
+};
+
+/* ---------- Rückgängig: merkt sich den Stand vor jedem Eintrag ---------- */
+const UNDO_ACTS = new Set(['smile', 'abs', 'mat', 'late', 'picksmile', 'savenote', 'status', 'setgrade']);
+let undoState = null;
+function captureUndo(act) {
+  const clone = x => x == null ? null : JSON.parse(JSON.stringify(x));
+  if (act === 'setgrade' && ui.pick && ui.pick.kind === 'exam') return {type: 'exam', id: ui.examId, sid: ui.pick.sid, before: clone(db.examGrades[ui.examId])};
+  if (!ui.lesson) return null;
+  return {type: 'lesson', key: ui.lesson, sid: ui.pick ? ui.pick.sid : ui.noteSid, before: clone(db.lessons[ui.lesson])};
+}
+function undoMessage(act, d, u) {
+  const c = u.type === 'lesson' ? cls(u.key.split('|')[0]) : curCls();
+  const sid = d.s || u.sid, s = c && c.students.find(x => x.id === sid), n = s ? firstName(s) : '';
+  if (u.type === 'exam') { const g = (db.examGrades[u.id] || {})[sid]; return g ? `${g} für ${n}` : `Note bei ${n} entfernt`; }
+  const L = db.lessons[u.key] || {};
+  const on = f => !!(L[f] || {})[sid];
+  switch (act) {
+    case 'smile': case 'picksmile': return L.grades && L.grades[sid] ? `${smiley(L.grades[sid])} für ${n}` : `Smiley bei ${n} entfernt`;
+    case 'abs': return on('absent') ? `${n}: krank` : `${n}: nicht mehr krank`;
+    case 'late': return on('late') ? `${n}: verspätet` : `${n}: Verspätung entfernt`;
+    case 'mat': return on('mat') ? `${n}: Material vergessen` : `${n}: Material-Eintrag entfernt`;
+    case 'savenote': return on('notes') ? `Notiz bei ${n} gespeichert` : `Notiz bei ${n} gelöscht`;
+    case 'status': return L.status === 'ausfall' ? 'Stunde als Ausfall markiert' : L.status === 'ohne' ? 'Stunde ohne Noten markiert' : 'Markierung entfernt';
+  }
+  return 'Eintrag geändert';
+}
+ACT.undo = () => {
+  const u = undoState; if (!u) return;
+  if (u.type === 'lesson') { if (u.before) db.lessons[u.key] = u.before; else delete db.lessons[u.key]; }
+  else { if (u.before) db.examGrades[u.id] = u.before; else delete db.examGrades[u.id]; db.examMt[u.id] = Date.now(); }
+  undoState = null; save(); closeSheet(); render();
+  document.querySelectorAll('.toast').forEach(x => x.remove()); toast('Rückgängig gemacht');
+};
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]'); if (!t || !ACT[t.dataset.act]) return;
+  const act = t.dataset.act, u = UNDO_ACTS.has(act) ? captureUndo(act) : null;
+  // Vergleich ohne Zeitstempel; eine leere Stunde zählt wie „nicht vorhanden“
+  const norm = x => (x == null || (u.type === 'lesson' && !lessonDone(x) && !x.topic) || (u.type === 'exam' && !Object.keys(x).length)) ? 'null' : JSON.stringify(x, (k, v) => k === 'mt' ? undefined : v);
+  const beforeJson = u ? norm(u.before) : null;
+  await ACT[act](t.dataset, t, e);
+  if (u && norm(u.type === 'lesson' ? db.lessons[u.key] : db.examGrades[u.id]) !== beforeJson) { undoState = u; toast(undoMessage(act, t.dataset, u), true); }
+});
+document.addEventListener('change', e => { const t = e.target.closest('[data-chg]'); if (t && CHG[t.dataset.chg]) CHG[t.dataset.chg](t); });
+window.addEventListener('focus', () => { if (ui.tab === 'heute' && !ui.lesson) render(); });
+
+/* ================= Start ================= */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js');
+  // Neue App-Version wurde installiert → einmal neu laden (Daten bleiben erhalten)
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { const sheetOpen = !$('#sheet').classList.contains('hidden');
+    if (hadController && !reloaded && !sheetOpen) { reloaded = true; location.reload(); } });
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+if (pinCfg) lockApp(); else render();
+// täglicher Wiederherstellungspunkt (einmal pro Tag beim ersten Öffnen)
+if (localStorage.getItem('notenbuch-lastsnap') !== today()) snapAdd('Täglich (automatisch)');
+// Ferien-Ergänzung beim ersten Start mit dieser Version dauerhaft speichern
+if (!JSON.parse(localStorage.getItem(KEY) || '{}').settings?.nrwAdded && hasData()) saveQuiet();
+</script>
+</body>
+</html>
