@@ -70,6 +70,7 @@ table.ov .nm{position:sticky;left:0;background:#fff;text-align:left;z-index:1;fo
 table.ov thead .nm{z-index:3;background:#f8fafc}
 table.ov td.calc{background:#f9fafb;color:#374151}
 table.ov td.res{background:#ecfdf5}
+table.ov td.qres{background:#f0f9ff}
 table.ov tbody tr{cursor:pointer}
 table.ov tbody tr:hover td{background:#eef2ff}
 table.ov tr.avg td{background:#f1f5f9!important;font-weight:600;cursor:default}
@@ -150,6 +151,7 @@ html.dark table.ov thead tr.hj th{background:#1e2a55;color:#c7d2fe}
 html.dark table.ov .nm{background:var(--card)}
 html.dark table.ov td.calc{background:#18243a;color:var(--ink)}
 html.dark table.ov td.res{background:#0d2e22}
+html.dark table.ov td.qres{background:#0f2740}
 html.dark table.ov tr.avg td{background:#1c2940!important}
 html.dark table.ov tbody tr:hover td{background:#1e2a55}
 html.dark .ttgrid td.other{background:#131d2f}
@@ -422,6 +424,18 @@ function calcStudent(c, s) {
     return {mdl, schr, tot};
   });
   r.year = (r.h[0].tot != null && r.h[1].tot != null) ? 0.5 * rnd(r.h[0].tot) + 0.5 * rnd(r.h[1].tot) : null;
+  // Quartalsgesamtnote (Zwischenstand): mündlich des Quartals + Klassenarbeiten dieses Quartals, gleiche Gewichtung wie im Halbjahr.
+  // Ohne Klassenarbeit im Quartal: nur mündlich (oralOnly). Fließt NICHT in die Halbjahresnote ein.
+  for (const q of QS) {
+    const o = r.q[q]; let ws = 0, sum = 0; const ex = [];
+    for (const e of c.exams.filter(e => e.quarter === q)) {
+      const g = (db.examGrades[e.id] || {})[s.id], p = pts(g);
+      if (p != null) { ws += +e.weight || 1; sum += p * (+e.weight || 1); ex.push(`${e.title}: ${g}`); }
+    }
+    o.schr = ws ? sum / ws : null; o.exList = ex;
+    o.tot = (o.final != null && o.schr != null) ? w * o.final + (1 - w) * o.schr : (o.final != null ? o.final : o.schr);
+    o.oralOnly = o.final != null && o.schr == null; o.writtenOnly = o.final == null && o.schr != null;
+  }
   r.abs = QS.reduce((a, q) => a + r.q[q].abs, 0); r.mat = QS.reduce((a, q) => a + r.q[q].mat, 0); r.late = QS.reduce((a, q) => a + r.q[q].late, 0);
   return r;
 }
@@ -601,12 +615,13 @@ function vOverview() {
   if (ws.length) h += `<details class="card" style="padding:8px 12px"><summary style="cursor:pointer">⚠ <b>${ws.length}</b> ${ws.length > 1 ? 'Hinweise' : 'Hinweis'} in ${esc(c.name)}</summary>${warnList(ws)}</details>`;
   h += `<div class="row wrap" style="margin-bottom:10px"><button class="btn sm" data-act="confsheet">📋 Notenliste Zeugniskonferenz</button><button class="btn sm" data-act="printallsheet">🖨 Berichte für alle drucken</button></div>`;
   const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
-  const span = i => 2 + ex[i].length + 3;
+  const span = i => 2 + ex[i].length + 2 + 3;
   let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th colspan="2">Ganzjahr</th><th colspan="4">Schuljahr gesamt</th></tr>`;
   let head2 = `<tr><th class="nm">Name</th>`;
   HJ.forEach((hj, i) => {
     head2 += hj.qs.map(q => `<th>${q}<span class="sub">mündl.</span></th>`).join('');
     head2 += ex[i].map(e => `<th>${esc(e.title)}<span class="sub">${e.quarter}${e.date ? ' · ' + fmtDL(e.date).slice(0, 6) : ''}</span></th>`).join('');
+    head2 += hj.qs.map(q => `<th>${q}<span class="sub">gesamt</span></th>`).join('');
     head2 += `<th>Ø mdl.<span class="sub">Pkt.</span></th><th>Ø schr.<span class="sub">Pkt.</span></th><th>${hj.short}<span class="sub">Note</span></th>`;
   });
   head2 += `<th>Jahr<span class="sub">Note</span></th><th>🤒<span class="sub">krank</span></th><th>⏰<span class="sub">spät</span></th><th>🎒<span class="sub">Material</span></th><th>📝<span class="sub">Notizen</span></th></tr>`;
@@ -619,6 +634,8 @@ function vOverview() {
       for (const q of hj.qs) { const o = r.q[q];
         put(o.final, o.final == null ? '' : `<b>${gradeOf(o.final)}${o.override ? '*' : ''}</b><span class="sub">${o.n ? `Ø ${fmtN(o.mean)} · ${o.n}×` : 'manuell'}</span>`); }
       for (const e of ex[i]) { const g = (db.examGrades[e.id] || {})[s.id]; put(pts(g), g ? `<b>${g}</b>` : ''); }
+      for (const q of hj.qs) { const o = r.q[q];
+        put(o.tot, o.tot == null ? '' : `<b>${gradeOf(o.tot)}</b><span class="sub">${o.oralOnly ? 'nur mdl.' : o.writtenOnly ? 'nur schr.' : fmtN(o.tot, 2) + ' P.'}</span>`, 'qres'); }
       put(r.h[i].mdl, fmtN(r.h[i].mdl, 2), 'calc');
       put(r.h[i].schr, fmtN(r.h[i].schr, 2), 'calc');
       put(r.h[i].tot, r.h[i].tot == null ? '' : `<b>${gradeOf(r.h[i].tot)}</b><span class="sub">${fmtN(r.h[i].tot, 2)} P.</span>`, 'res');
@@ -632,7 +649,7 @@ function vOverview() {
   for (let k = 0; k < cols.length; k++) { const a = avg(cols[k] || []); avgRow += `<td>${a == null ? '' : `${fmtN(a, 1)}<span class="sub">${gradeOf(a)}</span>`}</td>`; }
   avgRow += `<td></td><td></td><td></td><td></td></tr>`;
   h += `<div class="tbl-wrap"><table class="ov"><thead>${head1}${head2}</thead><tbody>${rows.join('')}${avgRow}</tbody></table></div>`;
-  h += `<p class="help">Mündliche Quartalsnote = Ø der Tagesnoten (gerundet). * = von dir festgelegt. Halbjahr = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % schriftlich, Jahr = Ø der gerundeten Halbjahre. Zeile antippen für Details.</p>`;
+  h += `<p class="help">Mündliche Quartalsnote = Ø der Tagesnoten (gerundet). * = von dir festgelegt. Quartal gesamt = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % Klassenarbeiten des Quartals (Zwischenstand; ohne Klassenarbeit nur mündlich). Halbjahr = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % schriftlich, Jahr = Ø der gerundeten Halbjahre. Zeile antippen für Details.</p>`;
   return h;
 }
 
@@ -647,7 +664,8 @@ function studentSheet(sid) {
       h += `<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="row"><b class="grow">${q} mündlich</b>
         <select data-chg="override" data-s="${s.id}" data-q="${q}"><option value="">automatisch${o.mean != null ? ' (' + gradeOf(o.mean) + ')' : ''}</option>${GRADES.map(g => `<option ${o.override === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
         <div class="small muted">${o.n ? `Ø ${fmtN(o.mean, 2)} Punkte aus ${o.n} Noten` : 'keine Tagesnoten'}${o.abs ? ` · ${o.abs}× krank` : ''}${o.late ? ` · ${o.late}× verspätet` : ''}${o.mat ? ` · ${o.mat}× Material vergessen` : ''}</div>
-        <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div></div>`;
+        <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div>
+        ${o.tot != null ? `<div class="small" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)"><b>${q} gesamt: ${gradeOf(o.tot)}</b> <span class="muted">${o.oralOnly ? '(nur mündlich – keine Klassenarbeit in diesem Quartal)' : o.writtenOnly ? '(nur schriftlich – noch keine mündliche Note)' : `(${fmtN(o.tot, 2)} P. = mündlich ${gradeOf(o.final)} + ${o.exList.join(', ')})`}</span></div>` : ''}</div>`;
     }
     const ex = examsOfHJ(c, i);
     h += `<div class="small">${ex.map(e => `${esc(e.title)}: <b>${(db.examGrades[e.id] || {})[s.id] || '–'}</b>`).join(' · ')}</div>`;
@@ -1279,7 +1297,7 @@ function exportXlsx() {
     const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
     const head = ['Nr.', 'Name'];
     HJ.forEach((hj, i) => {
-      for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} krank`, `${q} verspätet`, `${q} Material`);
+      for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} gesamt (Pkt.)`, `${q} gesamt Note`, `${q} krank`, `${q} verspätet`, `${q} Material`);
       for (const e of ex[i]) head.push(`${e.title} (${e.quarter}${e.date ? ', ' + fmtDL(e.date) : ''})`);
       head.push(`Ø mündl. ${hj.short} (Pkt.)`, `Ø schriftl. ${hj.short} (Pkt.)`, `${hj.short} (Pkt.)`, `${hj.short} Note`);
     });
@@ -1288,7 +1306,7 @@ function exportXlsx() {
     c.students.forEach((s, si) => {
       const r = calcStudent(c, s), row = [si + 1, s.name];
       HJ.forEach((hj, i) => {
-        for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', o.abs || '', o.late || '', o.mat || ''); }
+        for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', r2(o.tot), o.tot == null ? '' : gradeOf(o.tot) + (o.oralOnly ? ' (nur mdl.)' : ''), o.abs || '', o.late || '', o.mat || ''); }
         for (const e of ex[i]) row.push((db.examGrades[e.id] || {})[s.id] || '');
         row.push(r2(r.h[i].mdl), r2(r.h[i].schr), r2(r.h[i].tot), gradeOf(r.h[i].tot));
       });
@@ -1565,6 +1583,8 @@ function reportHtml(c, s, opt) {
   let h = `<div class="rep"><h1>${esc(s.name)}</h1><div>Deutsch · ${esc(c.name)} · Schuljahr ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')}</div>`;
   h += `<h2>Mündliche Mitarbeit</h2><table><tr><th>Quartal</th><th>Note</th><th>Tagesnoten</th><th>krank</th><th>verspätet</th><th>Material vergessen</th></tr>` +
     QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td><b>${dash(o.final == null ? '' : gradeOf(o.final))}</b></td><td>${o.n}</td><td>${o.abs}</td><td>${o.late}</td><td>${o.mat}</td></tr>`; }).join('') + `</table>`;
+  h += `<h2>Quartalsnoten gesamt (Zwischenstand)</h2><table><tr><th>Quartal</th><th>mündlich</th><th>Klassenarbeiten</th><th>Quartal gesamt</th></tr>` +
+    QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td>${dash(o.final == null ? '' : gradeOf(o.final))}</td><td>${dash(o.exList.join(', '))}</td><td><b>${dash(o.tot == null ? '' : gradeOf(o.tot))}</b>${o.oralOnly ? ' (nur mündlich)' : ''}</td></tr>`; }).join('') + `</table>`;
   const ex = c.exams.slice().sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : 1);
   h += `<h2>Klassenarbeiten</h2><table><tr><th>Arbeit</th><th>Datum</th><th>Note</th></tr>` +
     ex.map(e => `<tr><td>${esc(e.title)}</td><td>${dash(fmtDL(e.date))}</td><td><b>${dash((db.examGrades[e.id] || {})[s.id])}</b></td></tr>`).join('') + `</table>`;
