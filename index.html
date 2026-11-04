@@ -88,6 +88,7 @@ table.ov tr.avg td{background:#f1f5f9!important;font-weight:600;cursor:default}
 .dl{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
 .dl span{font-size:13px;background:#f3f4f6;border-radius:6px;padding:2px 6px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:10px;z-index:30;font-size:14px;display:flex;align-items:center;gap:12px;max-width:92vw;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#syncind{cursor:pointer;font-size:13px;color:#e0e7ff;white-space:nowrap}
 .toast-undo{background:none;border:0;color:#93c5fd;font-weight:700;padding:4px 2px;font-size:14px;white-space:nowrap}
 p.help{font-size:13px;color:var(--muted);margin:6px 0 10px}
 .day{margin-bottom:4px}
@@ -187,7 +188,7 @@ html.dark .weeksep::after{border-color:#2a3a52}
 </style>
 </head>
 <body>
-<header class="top"><div><b>Notenbuch Deutsch</b> <span id="year" class="muted"></span></div><div id="stand" class="muted"></div></header>
+<header class="top"><div><b>Notenbuch Deutsch</b> <span id="year" class="muted"></span></div><div class="row" style="gap:10px"><span id="syncind" data-act="syncnow" title="Synchronisation mit Dropbox"></span><span id="stand" class="muted"></span></div></header>
 <main id="main"></main>
 <nav class="tabs">
   <button data-act="tab" data-t="heute">📅<span>Heute</span></button>
@@ -303,8 +304,10 @@ function migrate(j) {
 }
 function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v) return migrate(j); } catch (e) {} return migrate(defaults()); }
 let db = load();
-function save() { db.updated = Date.now(); localStorage.setItem(KEY, JSON.stringify(db)); }
-function saveQuiet() { localStorage.setItem(KEY, JSON.stringify(db)); }
+// persist = nur lokal speichern; save/saveQuiet merken zusätzlich „muss synchronisiert werden“
+function persist() { localStorage.setItem(KEY, JSON.stringify(db)); }
+function save() { db.updated = Date.now(); persist(); markDirty(); }
+function saveQuiet() { persist(); markDirty(); }
 const hasData = () => Object.keys(db.lessons).length > 0 || Object.keys(db.examGrades).length > 0;
 
 const ui = {tab: 'heute', date: today(), agFrom: addDays(today(), -14), agTo: addDays(today(), 21), agScrollTo: today(), heuteY: null, lesson: null, cls: db.classes[0]?.id, examId: null, pick: null};
@@ -415,6 +418,7 @@ const examsOfHJ = (c, i) => c.exams.filter(e => HJ[i].qs.includes(e.quarter)).so
 function render() {
   if (locked) return;
   document.documentElement.style.setProperty('--toph', $('.top').offsetHeight + 'px');
+  updSyncUi();
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === ui.tab));
   $('#year').textContent = db.settings.year;
   $('#stand').textContent = 'Stand ' + new Date(db.updated).toLocaleString('de-DE', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
@@ -731,6 +735,15 @@ function vSettings() {
        <h3 style="margin-top:14px">PIN ändern</h3>`
     : `<p class="help" style="margin-top:0">Beim Öffnen fragt die App nach einer PIN (4–6 Ziffern). Die PIN gilt nur für dieses Gerät. Achtung: Ohne PIN kommst du nur wieder hinein, indem du alle Daten auf diesem Gerät löschst und eine Sicherung lädst.</p>`) +
     `<div class="row wrap"><input id="pin1" type="password" inputmode="numeric" maxlength="6" placeholder="neue PIN" style="width:120px"><input id="pin2" type="password" inputmode="numeric" maxlength="6" placeholder="wiederholen" style="width:120px"><button class="btn pri sm" data-act="setpin">PIN ${pinCfg ? 'ändern' : 'festlegen'}</button></div></div>`;
+  h += `<h3>☁️ Automatische Synchronisation (Dropbox)</h3><div class="card">` + (dbxOn()
+    ? `<div style="margin-bottom:6px">✓ Verbunden mit Dropbox</div>
+       <div class="small" style="margin-bottom:8px">Letzter Abgleich: <b>${dbx.last ? fmtStand(dbx.last) : 'noch keiner'}</b>${dbx.dirty ? ' · Änderungen warten auf Upload' : ''}${syncState.err ? `<div class="banner bad" style="margin-top:6px">⚠ ${esc(syncState.err)}</div>` : ''}</div>
+       <div class="row wrap"><button class="btn pri sm" data-act="syncnow">☁️ Jetzt synchronisieren</button><button class="btn sm danger" data-act="dbxoff">Trennen</button></div>
+       <p class="help">Das Handy lädt Änderungen automatisch hoch (sobald Internet da ist), andere Geräte holen sie beim Öffnen ab. In Dropbox liegt nur die verschlüsselte Datei.</p>`
+    : `<p class="help" style="margin-top:0">Handy und PC gleichen sich dann von selbst ab – kein Teilen und Laden mehr nötig. Einmalige Einrichtung: eigene Dropbox-App anlegen (kostenlos, ca. 5 Min.).</p>
+       ${encCfg ? '' : '<div class="banner small">🔐 Auf dem <b>ersten</b> Gerät bitte zuerst unten die Verschlüsselung einschalten. Auf dem zweiten Gerät fragt die App beim ersten Abgleich nach dem Passwort.</div>'}
+       <div class="small" style="margin-bottom:6px">Weiterleitungs-Adresse für die Dropbox-App:<br><code style="user-select:all;word-break:break-all">${esc(redirectUri())}</code></div>
+       <div class="row wrap"><input id="dbx-key" placeholder="App key aus Dropbox" class="grow" autocomplete="off" value="${esc((dbx && dbx.appKey) || '')}"><button class="btn pri sm" data-act="dbxon">Mit Dropbox verbinden</button></div>`) + `</div>`;
   h += `<h3>Daten & Abgleich Handy → PC</h3><div class="card">
     <div class="small" style="margin-bottom:8px">Letzte Sicherung: <b>${db.lastBackup ? new Date(db.lastBackup).toLocaleString('de-DE') : 'noch nie'}</b></div>
     <div class="row wrap">
@@ -866,7 +879,7 @@ function downloadBlob(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
-function markBackup() { db.lastBackup = Date.now(); saveQuiet(); render(); }
+function markBackup() { db.lastBackup = Date.now(); persist(); render(); }
 async function shareBackup() {
   for (const asTxt of [false, true]) {
     const f = await backupFile(asTxt);
@@ -1026,6 +1039,143 @@ async function loadFromDir() {
   try { j = await parseBackup(best.text); }
   catch (e) { if (e.message !== 'abgebrochen') alert(e.message === 'Falsches Passwort' ? 'Das Passwort ist falsch.' : 'Die Datei konnte nicht gelesen werden.'); return; }
   showImportSheet(j, best.name);
+}
+
+/* ---------- Automatische Synchronisation über Dropbox ----------
+   Anmeldung per OAuth mit PKCE (ohne Server, dauerhaft über Refresh-Token).
+   Die App sieht nur ihren eigenen Ordner „Apps/<App-Name>“. Hochgeladen wird nur die verschlüsselte Sicherung. */
+const DBXKEY = 'notenbuch-dbx', DBX_FILE = '/notenbuch-sync.json';
+let dbx = null; try { dbx = JSON.parse(localStorage.getItem(DBXKEY)); } catch (e) {}
+const dbxSave = () => localStorage.setItem(DBXKEY, JSON.stringify(dbx));
+const dbxOn = () => !!(dbx && dbx.refresh);
+const redirectUri = () => location.origin + location.pathname;
+const b64url = u8 => b64e(u8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const syncState = {busy: false, err: ''};
+let syncTimer = null;
+
+function markDirty() { if (!dbxOn()) return; if (!dbx.dirty) { dbx.dirty = true; dbxSave(); } scheduleSync(); updSyncUi(); }
+function scheduleSync(ms = 15000) { if (!dbxOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(false), ms); }
+
+async function dbxConnect(appKey) {
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  localStorage.setItem('notenbuch-dbx-pkce', JSON.stringify({verifier, state, appKey}));
+  location.href = 'https://www.dropbox.com/oauth2/authorize?' + new URLSearchParams({
+    client_id: appKey, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256',
+    token_access_type: 'offline', redirect_uri: redirectUri(), state});
+}
+async function dbxHandleRedirect() {
+  const p = new URLSearchParams(location.search);
+  if (!p.has('code') && !p.has('error')) return;
+  history.replaceState(null, '', redirectUri());
+  const pk = JSON.parse(localStorage.getItem('notenbuch-dbx-pkce') || 'null'); localStorage.removeItem('notenbuch-dbx-pkce');
+  if (p.has('error')) return toast('Dropbox-Verbindung abgebrochen');
+  if (!pk || pk.state !== p.get('state')) return alert('Die Dropbox-Anmeldung konnte nicht zugeordnet werden. Bitte noch einmal „Mit Dropbox verbinden“ tippen.');
+  let j, r;
+  try {
+    r = await fetch('https://api.dropboxapi.com/oauth2/token', {method: 'POST', body: new URLSearchParams({
+      code: p.get('code'), grant_type: 'authorization_code', client_id: pk.appKey, code_verifier: pk.verifier, redirect_uri: redirectUri()})});
+    j = await r.json();
+  } catch (e) { return alert('Keine Verbindung zu Dropbox. Besteht eine Internetverbindung?'); }
+  if (!r.ok) return alert('Dropbox-Verbindung fehlgeschlagen: ' + (j.error_description || j.error || r.status));
+  dbx = {appKey: pk.appKey, refresh: j.refresh_token, access: j.access_token, exp: Date.now() + (j.expires_in - 60) * 1000, rev: null, dirty: true, last: 0};
+  dbxSave(); render(); toast('Mit Dropbox verbunden');
+  await syncNow(true);
+}
+async function dbxToken() {
+  if (dbx.access && Date.now() < dbx.exp) return dbx.access;
+  const r = await fetch('https://api.dropboxapi.com/oauth2/token', {method: 'POST', body: new URLSearchParams({grant_type: 'refresh_token', refresh_token: dbx.refresh, client_id: dbx.appKey})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (j.error === 'invalid_grant') { dbx.refresh = null; dbxSave(); render(); throw new Error('Die Dropbox-Verbindung ist abgelaufen – bitte in den Einstellungen neu verbinden.'); }
+    throw new Error('Dropbox-Anmeldung: ' + (j.error_description || r.status));
+  }
+  dbx.access = j.access_token; dbx.exp = Date.now() + (j.expires_in - 60) * 1000; dbxSave();
+  return dbx.access;
+}
+async function dbxApi(url, arg, body) {
+  const headers = {Authorization: 'Bearer ' + await dbxToken()}, content = url.includes('content.dropboxapi');
+  if (content) { headers['Dropbox-API-Arg'] = JSON.stringify(arg); if (body != null) headers['Content-Type'] = 'application/octet-stream'; }
+  else headers['Content-Type'] = 'application/json';
+  return fetch(url, {method: 'POST', headers, body: content ? body : JSON.stringify(arg)});
+}
+// Entschlüsseln der Datei aus Dropbox; auf einem neuen Gerät wird einmal nach dem Passwort gefragt
+async function syncDecrypt(w, interactive) {
+  if (!w.notenbuchEnc) return migrate(w);
+  let raw = (encCfg && encCfg.salt === w.salt) ? encCfg.key : keyCache[w.salt];
+  for (let i = 0; i < 3; i++) {
+    if (!raw) {
+      if (!interactive) throw new Error('Passwort nötig – bitte auf ☁️ tippen');
+      const pw = await askPassword(i ? 'Falsches Passwort – bitte erneut versuchen.' : 'Die Daten in Dropbox sind verschlüsselt. Bitte das Passwort eingeben, das du auf dem anderen Gerät festgelegt hast.');
+      if (pw == null) throw new Error('Passwort nicht eingegeben');
+      raw = await deriveKeyRaw(pw, w.salt, w.iter);
+    }
+    try {
+      const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64d(w.iv)}, await aesKey(raw), b64d(w.data));
+      keyCache[w.salt] = raw;
+      // beide Geräte verwenden denselben Schlüssel
+      if (!encCfg || encCfg.salt !== w.salt) { encCfg = {salt: w.salt, iter: w.iter, key: raw}; localStorage.setItem(ENCKEY, JSON.stringify(encCfg)); }
+      return migrate(JSON.parse(new TextDecoder().decode(pt)));
+    } catch (e) { raw = null; if (!interactive) throw new Error('Passwort passt nicht zu den Daten in Dropbox – bitte auf ☁️ tippen'); }
+  }
+  throw new Error('Falsches Passwort');
+}
+const dataSig = d => JSON.stringify([d.lessons, d.examGrades, d.classes.map(c => [c.id, c.students, c.exams, c.timetable, c.overrides, c.talk])]);
+
+async function syncNow(interactive) {
+  if (!dbxOn() || syncState.busy) return;
+  if (!navigator.onLine) { syncState.err = 'offline – wird nachgeholt'; updSyncUi(); return; }
+  syncState.busy = true; syncState.err = ''; updSyncUi();
+  const sigBefore = dataSig(db);
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // 1. Gibt es in Dropbox einen neueren Stand? → abholen und zusammenführen
+      const m = await dbxApi('https://api.dropboxapi.com/2/files/get_metadata', {path: DBX_FILE});
+      let remoteRev = null;
+      if (m.ok) remoteRev = (await m.json()).rev;
+      else if (m.status !== 409) throw new Error('Dropbox antwortet nicht (' + m.status + ')');
+      if (remoteRev && remoteRev !== dbx.rev) {
+        const d = await dbxApi('https://content.dropboxapi.com/2/files/download', {path: DBX_FILE});
+        if (!d.ok) throw new Error('Herunterladen fehlgeschlagen (' + d.status + ')');
+        const remote = await syncDecrypt(JSON.parse(await d.text()), interactive);
+        // Gerät ohne eigene Einträge (z. B. frisch eingerichteter PC): Stand aus Dropbox komplett übernehmen,
+        // sonst entstünden doppelte, leere Lerngruppen
+        const empty = !db.classes.some(c => c.students.length) && !hasData();
+        if (empty) { const keep = db.lastBackup; db = remote; db.lastBackup = keep; } else db = mergeDb(db, remote);
+        persist(); dbx.rev = remoteRev; dbxSave();
+      }
+      // 2. Eigene Änderungen hochladen
+      if (!dbx.dirty) break;
+      if (!encCfg) throw new Error('Bitte zuerst die Verschlüsselung einschalten (Einstellungen → Daten)');
+      const text = await encryptText(JSON.stringify(db));
+      const mode = remoteRev ? {'.tag': 'update', update: remoteRev} : {'.tag': 'add'};
+      const u = await dbxApi('https://content.dropboxapi.com/2/files/upload', {path: DBX_FILE, mode, mute: true, autorename: false}, new Blob([text]));
+      if (u.status === 409) continue;   // anderes Gerät war schneller → erst abholen, dann erneut
+      if (!u.ok) throw new Error('Hochladen fehlgeschlagen (' + u.status + ')');
+      dbx.rev = (await u.json()).rev; dbx.dirty = false; dbxSave();
+      break;
+    }
+    if (dbx.dirty) throw new Error('Gleichzeitige Änderung – wird gleich erneut versucht');
+    dbx.last = Date.now(); dbxSave();
+    if (dataSig(db) !== sigBefore) { render(); toast('☁️ Neue Einträge vom anderen Gerät übernommen'); }
+    else if (interactive) toast('☁️ Alles synchronisiert');
+  } catch (e) {
+    syncState.err = e.message;
+    if (interactive) alert('Synchronisation: ' + e.message);
+    else if (dbx && dbx.dirty) scheduleSync(60000);
+  } finally { syncState.busy = false; updSyncUi(); }
+}
+function updSyncUi() {
+  const el = $('#syncind'); if (!el) return;
+  if (!dbxOn()) { el.textContent = ''; return; }
+  const t = dbx.last ? new Date(dbx.last).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) : '–';
+  el.textContent = syncState.busy ? '☁️ …' : syncState.err ? '☁️ ⚠' : dbx.dirty ? '☁️ ↑' : '☁️ ✓ ' + t;
+  el.title = syncState.err || (dbx.dirty ? 'Änderungen werden hochgeladen' : 'Synchronisiert um ' + t);
+}
+async function dbxDisconnect() {
+  try { await dbxApi('https://api.dropboxapi.com/2/auth/token/revoke', null); } catch (e) {}
+  dbx = null; localStorage.removeItem(DBXKEY); render(); toast('Dropbox getrennt');
 }
 
 // --- Mini-XLSX-Writer (ohne externe Bibliothek, funktioniert offline) ---
@@ -1522,6 +1672,14 @@ const ACT = {
     pinCfg = null; localStorage.removeItem(PINKEY); render(); toast('PIN-Sperre ausgeschaltet');
   },
   locknow: () => lockApp(),
+  syncnow: () => { if (dbxOn()) syncNow(true); },
+  dbxon: () => {
+    const k = $('#dbx-key').value.trim();
+    if (!/^[a-z0-9]{10,20}$/i.test(k)) return alert('Bitte den „App key“ aus den Einstellungen deiner Dropbox-App eintragen (10–20 Buchstaben/Ziffern).');
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') return alert('Die Verbindung geht nur über die Online-Adresse der App (https).');
+    dbxConnect(k);
+  },
+  dbxoff: () => { if (confirm('Verbindung zu Dropbox trennen?\n\nDie Daten auf diesem Gerät bleiben erhalten; die Datei in Dropbox bleibt ebenfalls liegen.')) dbxDisconnect(); },
   importmerge: () => doImport('merge'),
   importreplace: () => { if (confirm('Wirklich alle Daten auf diesem Gerät durch die Sicherung ersetzen?')) doImport('replace'); },
   pickdir: () => pickBackupDir(),
@@ -1691,6 +1849,12 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 applyTheme();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 if (pinCfg) lockApp(); else render();
+// Dropbox: Rückkehr von der Anmeldung verarbeiten, dann abgleichen – beim Öffnen, beim Zurückkehren, bei Internet, alle 5 Min.
+updSyncUi();
+dbxHandleRedirect().then(() => syncNow(false));
+document.addEventListener('visibilitychange', () => { if (!dbxOn()) return; if (document.hidden) { if (dbx.dirty) syncNow(false); } else syncNow(false); });
+window.addEventListener('online', () => syncNow(false));
+setInterval(() => syncNow(false), 5 * 60000);
 // täglicher Wiederherstellungspunkt (einmal pro Tag beim ersten Öffnen)
 if (localStorage.getItem('notenbuch-lastsnap') !== today()) snapAdd('Täglich (automatisch)');
 // Ferien-Ergänzung beim ersten Start mit dieser Version dauerhaft speichern
