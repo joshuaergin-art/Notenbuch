@@ -102,6 +102,19 @@ p.help{font-size:13px;color:var(--muted);margin:6px 0 10px}
 .weeksep::after{content:'';flex:1;border-top:1px solid #d1d5db}
 .ag-more{text-align:center;padding:14px;font-size:13px;color:var(--muted)}
 .banner.bad{background:#fee2e2;color:#7f1d1d}
+.nb{font-size:17px!important;color:var(--muted)}
+.nsp{display:flex;align-items:flex-end;gap:2px;height:140px;border-bottom:1px solid var(--line);padding:0 4px}
+.nsp-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;outline:none;cursor:default}
+.nsp-bar{width:62%;max-width:46px;background:var(--pri);border-radius:4px 4px 0 0;transition:height .2s}
+.nsp-val{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.nsp-col:hover .nsp-bar,.nsp-col:focus .nsp-bar{filter:brightness(1.15)}
+.nsp-col:hover::after,.nsp-col:focus::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap;z-index:2;pointer-events:none}
+.nsp-labs{display:flex;gap:2px;padding:4px 4px 0}
+.nsp-labs span{flex:1;text-align:center;font-size:13px;color:var(--muted)}
+.stat{flex:1;min-width:92px;background:var(--bg);border-radius:10px;padding:8px 10px}
+.stat-v{font-size:22px;font-weight:700;line-height:1.2}
+.stat-l{font-size:11px;color:var(--muted);line-height:1.3}
+.nsp-table{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 pre.preview{white-space:pre-wrap;background:#f3f4f6;border-radius:8px;padding:8px;font-size:12px;max-height:40vh;overflow:auto}
 
 /* ---------- Dunkelmodus ---------- */
@@ -655,12 +668,48 @@ function vExams() {
     if (!ex.length) h += `<div class="muted small">Keine Klassenarbeit.</div>`;
     for (const e of ex) {
       const m = db.examGrades[e.id] || {}, n = c.students.filter(s => m[s.id]).length;
-      const a = avg(c.students.map(s => pts(m[s.id])).filter(x => x != null));
-      h += `<div class="card lesson" data-act="exam" data-e="${e.id}"><div class="per">${e.quarter}</div><div class="grow"><b>${esc(e.title)}</b><div class="small muted">${e.date ? fmtDL(e.date) : 'kein Datum'}${(+e.weight || 1) !== 1 ? ' · Gewicht ' + e.weight : ''}${a != null ? ` · Ø ${gradeOf(a)} (${fmtN(a)} P.)` : ''}</div></div><span class="badge ${n === c.students.length && n ? 'ok' : ''}">${n}/${c.students.length}</span></div>`;
+      const st = examStats(c, e);
+      h += `<div class="card lesson" data-act="exam" data-e="${e.id}"><div class="per">${e.quarter}</div><div class="grow"><b>${esc(e.title)}</b><div class="small muted">${e.date ? fmtDL(e.date) : 'kein Datum'}${(+e.weight || 1) !== 1 ? ' · Gewicht ' + e.weight : ''}${st.whole != null ? ` · Ø ${fmtN(st.whole, 2)}` : ''}${st.nb ? ` · ${st.nb}× NB` : ''}</div></div><span class="badge ${n === c.students.length && n ? 'ok' : ''}">${n}/${c.students.length}</span></div>`;
     }
   });
   h += `<button class="btn pri" data-act="addexam" style="margin-top:8px">+ Klassenarbeit hinzufügen</button>`;
   return h;
+}
+
+/* ---------- Notenspiegel & Mittelwert einer Klassenarbeit ---------- */
+// NB (nicht bewertet) und fehlende Noten zählen nicht mit.
+function examStats(c, e) {
+  const m = db.examGrades[e.id] || {};
+  const gs = c.students.map(s => m[s.id]).filter(Boolean);
+  const valid = gs.filter(g => pts(g) != null);
+  const dist = [0, 0, 0, 0, 0, 0];
+  for (const g of valid) dist[+g[0] - 1]++;
+  return {
+    n: valid.length, nb: gs.filter(g => g === 'NB').length, missing: c.students.length - gs.length, dist,
+    whole: valid.length ? valid.reduce((a, g) => a + +g[0], 0) / valid.length : null,   // Ø aus ganzen Noten (Notenspiegel)
+    pAvg: avg(valid.map(pts)),                                                          // Ø mit Tendenzen, in Punkten
+    under: dist[4] + dist[5],
+  };
+}
+function examStatsCard(c, e) {
+  const st = examStats(c, e);
+  if (!st.n) return `<div class="card small muted">Notenspiegel und Durchschnitt erscheinen, sobald Noten eingetragen sind.</div>`;
+  const max = Math.max(...st.dist);
+  const cols = st.dist.map((n, i) => {
+    const pct = Math.round(100 * n / st.n);
+    return `<div class="nsp-col" tabindex="0" data-tip="Note ${i + 1}: ${n} ${n === 1 ? 'Arbeit' : 'Arbeiten'} (${pct} %)">
+      <div class="nsp-val">${n || ''}</div><div class="nsp-bar" style="height:${n ? Math.max(3, 100 * n / max) : 0}%"></div></div>`;
+  }).join('');
+  const third = st.under > st.n / 3;
+  return `<div class="card"><div class="row" style="margin-bottom:8px"><b class="grow">Notenspiegel</b><span class="small muted">${st.n} bewertet${st.nb ? ` · ${st.nb}× NB` : ''}${st.missing ? ` · ${st.missing} fehlen` : ''}</span></div>
+    <div class="nsp" role="img" aria-label="Notenspiegel: ${st.dist.map((n, i) => `Note ${i + 1}: ${n}`).join(', ')}">${cols}</div>
+    <div class="nsp-labs">${[1, 2, 3, 4, 5, 6].map(g => `<span>${g}</span>`).join('')}</div>
+    <div class="row wrap" style="margin-top:12px;gap:10px">
+      <div class="stat"><div class="stat-v">${fmtN(st.whole, 2)}</div><div class="stat-l">Notendurchschnitt<br>(ganze Noten)</div></div>
+      <div class="stat"><div class="stat-v">${gradeOf(st.pAvg)}</div><div class="stat-l">Ø mit Tendenzen<br>${fmtN(st.pAvg, 1)} Punkte</div></div>
+      <div class="stat"><div class="stat-v">${st.under}</div><div class="stat-l">mangelhaft /<br>ungenügend (${Math.round(100 * st.under / st.n)} %)</div></div></div>
+    ${third ? `<div class="banner bad small" style="margin-top:10px">⚠ Mehr als ein Drittel ist mangelhaft oder ungenügend. In NRW entscheidet dann die Schulleitung, ob die Arbeit gewertet wird (APO-S I).</div>` : ''}
+    <table class="nsp-table small"><tr><th>Note</th>${[1, 2, 3, 4, 5, 6].map(g => `<th>${g}</th>`).join('')}</tr><tr><td>Anzahl</td>${st.dist.map(n => `<td>${n}</td>`).join('')}</tr></table></div>`;
 }
 
 function vExam() {
@@ -674,6 +723,7 @@ function vExam() {
     <div class="field"><label>Quartal</label><select data-chg="exam" data-f="quarter">${QS.map(q => `<option ${q === e.quarter ? 'selected' : ''}>${q}</option>`).join('')}</select></div>
     <div class="field"><label>Gewicht</label><input type="number" min="0.5" step="0.5" style="width:80px" value="${e.weight}" data-chg="exam" data-f="weight"></div></div>
     <button class="btn sm danger" data-act="delexam">Klassenarbeit löschen</button></div>`;
+  h += examStatsCard(c, e);
   h += `<div class="card slist">` + c.students.map((s, i) => {
     const g = m[s.id] || '';
     return `<div class="st"><span class="nr">${i + 1}</span><div class="grow">${esc(s.name)}</div><button class="chip ${g ? 'has ' + gcls(g) : ''}" data-act="pick" data-k="exam" data-s="${s.id}">${g || '+'}</button></div>`;
@@ -801,7 +851,10 @@ function openPicker(kind, sid) {
   ui.pick = {kind, sid};
   const cur = kind === 'lesson' ? (db.lessons[ui.lesson] || {grades: {}}).grades[sid] : (db.examGrades[ui.examId] || {})[sid];
   showSheet(`<div class="row"><b class="grow" style="font-size:18px">${esc(s.name)}</b><button class="btn sm" data-act="closesheet">✕</button></div>
-    <div class="ggrid">${GRADES.map(g => `<button class="${gcls(g)} ${cur === g ? 'cur' : ''}" data-act="setgrade" data-g="${g}">${g}</button>`).join('')}<button data-act="setgrade" data-g="" style="grid-column:span 2">Note entfernen</button></div>`);
+    <div class="ggrid">${GRADES.map(g => `<button class="${gcls(g)} ${cur === g ? 'cur' : ''}" data-act="setgrade" data-g="${g}">${g}</button>`).join('')}${kind === 'exam'
+      ? `<button class="nb ${cur === 'NB' ? 'cur' : ''}" data-act="setgrade" data-g="NB" title="nicht bewertet – zählt in keinen Durchschnitt">NB</button><button data-act="setgrade" data-g="" style="font-size:14px">Note entfernen</button>`
+      : `<button data-act="setgrade" data-g="" style="grid-column:span 2">Note entfernen</button>`}</div>
+    ${kind === 'exam' ? '<div class="small muted">NB = nicht bewertet (z. B. Täuschung, Attest) – zählt in keinen Durchschnitt.</div>' : ''}`);
 }
 
 function openListSheet() {
