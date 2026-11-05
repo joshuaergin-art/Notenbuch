@@ -104,6 +104,13 @@ p.help{font-size:13px;color:var(--muted);margin:6px 0 10px}
 .ag-more{text-align:center;padding:14px;font-size:13px;color:var(--muted)}
 .banner.bad{background:#fee2e2;color:#7f1d1d}
 .nb{font-size:17px!important;color:var(--muted)}
+.tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;background:#ede9fe;color:#5b21b6;vertical-align:middle;margin-left:2px;letter-spacing:.02em}
+html.dark .tag{background:#2e1f5e;color:#ddd6fe}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.tagpick button{font-size:13px;padding:5px 10px;border-radius:99px}
+.tagpick button.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.proto{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+.ro-banner{position:sticky;top:var(--toph,44px);z-index:4;background:#7c2d12;color:#fff;padding:8px 12px;border-radius:0 0 10px 10px;margin:-12px -12px 10px;display:flex;align-items:center;gap:8px;font-size:14px}
 .nsp{display:flex;align-items:flex-end;gap:2px;height:140px;border-bottom:1px solid var(--line);padding:0 4px}
 .nsp-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;outline:none;cursor:default}
 .nsp-bar{width:62%;max-width:46px;background:var(--pri);border-radius:4px 4px 0 0;transition:height .2s}
@@ -260,7 +267,17 @@ function defaultExams() {
   return [['KA 1','Q1'],['KA 2','Q2'],['KA 3','Q2'],['KA 4','Q3'],['KA 5','Q4'],['KA 6','Q4']]
     .map(([t, q]) => ({id: uid(), title: t, quarter: q, date: '', weight: 1}));
 }
-function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, talk: {}}; }
+function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, talk: {}, protocols: {}}; }
+
+// Schülermerkmale – sensible Daten: werden NIE an die KI gesendet und nur auf Wunsch gedruckt
+const TAGS = [
+  ['lrs', 'LRS', 'Lese-Rechtschreib-Schwierigkeit'],
+  ['na', 'NA', 'Nachteilsausgleich'],
+  ['foerder', 'Förder', 'Sonderpädagogischer Förderbedarf'],
+  ['daz', 'DaZ', 'Deutsch als Zweitsprache'],
+];
+const tagBadges = s => (s.tags || []).map(t => { const d = TAGS.find(x => x[0] === t); return d ? `<span class="tag" title="${esc(d[2])}">${d[1]}</span>` : ''; }).join('');
+const tagText = s => (s.tags || []).map(t => (TAGS.find(x => x[0] === t) || [])[2]).filter(Boolean).join(', ') + (s.info ? (s.tags && s.tags.length ? ' – ' : '') + s.info : '');
 function defaults() {
   return {
     v: 1, updated: Date.now(), lastBackup: 0,
@@ -310,9 +327,11 @@ function migrate(j) {
   const d = defaults();
   j.settings = Object.assign(d.settings, j.settings || {});
   j.classes = j.classes || []; j.lessons = j.lessons || {}; j.examGrades = j.examGrades || {};
-  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.talk ||= {}; }
+  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.talk ||= {}; c.protocols ||= {}; }
+  j.yearId ||= 'y:' + j.settings.year;   // eindeutig je Schuljahr, auf allen Geräten gleich
+  j.archives ||= [];
   j.examMt ||= {}; j.deleted ||= {};
-  for (const k of ['lessons', 'exams', 'classes', 'students']) j.deleted[k] ||= {};
+  for (const k of ['lessons', 'exams', 'classes', 'students', 'archives']) j.deleted[k] ||= {};
   addNrwHolidays(j);
   for (const L of Object.values(j.lessons)) { L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {}; }
   return j;
@@ -320,9 +339,10 @@ function migrate(j) {
 function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v) return migrate(j); } catch (e) {} return migrate(defaults()); }
 let db = load();
 // persist = nur lokal speichern; save/saveQuiet merken zusätzlich „muss synchronisiert werden“
-function persist() { localStorage.setItem(KEY, JSON.stringify(db)); }
-function save() { db.updated = Date.now(); persist(); markDirty(); }
-function saveQuiet() { persist(); markDirty(); }
+// Im Archiv (ui.readonly) wird nichts gespeichert oder synchronisiert
+function persist() { if (ui.readonly) return; localStorage.setItem(KEY, JSON.stringify(db)); }
+function save() { if (ui.readonly) { toast('📦 Archiv – Änderungen werden nicht gespeichert'); return; } db.updated = Date.now(); persist(); markDirty(); }
+function saveQuiet() { if (ui.readonly) return; persist(); markDirty(); }
 const hasData = () => Object.keys(db.lessons).length > 0 || Object.keys(db.examGrades).length > 0;
 
 const ui = {tab: 'heute', date: today(), agFrom: addDays(today(), -14), agTo: addDays(today(), 21), agScrollTo: today(), heuteY: null, lesson: null, cls: db.classes[0]?.id, examId: null, pick: null};
@@ -455,6 +475,7 @@ function render() {
     : ui.tab === 'uebersicht' ? vOverview()
     : ui.tab === 'ka' ? (ui.examId ? vExam() : vExams())
     : vSettings();
+  if (ui.readonly) m.insertAdjacentHTML('afterbegin', `<div class="ro-banner">📦 <span class="grow">Archiv ${esc(ui.readonly.year)} – nur lesen</span><button class="btn sm" data-act="archexit">Zurück ins aktuelle Jahr</button></div>`);
   if (ui.tab === 'einst') fillSnapList();
   if (ui.tab === 'heute' && !ui.lesson) setupAgenda(); else if (agObserver) agObserver.disconnect();
 }
@@ -586,7 +607,7 @@ function vLesson() {
     const abs = (L.absent || {})[s.id], mat = (L.mat || {})[s.id], note = (L.notes || {})[s.id], late = (L.late || {})[s.id];
     const legacy = g && !smiley(g) ? ` · heute: ${g}` : '';
     return `<div class="st2${abs ? ' abs' : ''}">
-      <div class="row"><span class="nr">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b><span class="sub">${st && st.n ? `${q}: Ø ${gradeOf(st.mean)} (${fmtN(st.mean)} P., ${st.n}×)` : ''}${legacy}</span></div>
+      <div class="row"><span class="nr">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b> ${tagBadges(s)}<span class="sub">${st && st.n ? `${q}: Ø ${gradeOf(st.mean)} (${fmtN(st.mean)} P., ${st.n}×)` : ''}${legacy}</span></div>
         <button class="ic${abs ? ' on-abs' : ''}" data-act="abs" data-s="${s.id}">🤒<span>krank</span></button>
         <button class="ic${late ? ' on-late' : ''}" data-act="late" data-s="${s.id}">⏰<span>spät</span></button>
         <button class="ic${mat ? ' on-mat' : ''}" data-act="mat" data-s="${s.id}">🎒<span>Material</span></button>
@@ -643,7 +664,7 @@ function vOverview() {
     put(r.year, r.year == null ? '' : `<b>${gradeOf(r.year)}</b><span class="sub">${fmtN(r.year, 1)} P.</span>`, 'res');
     const nNotes = QS.reduce((a, q) => a + r.q[q].items.filter(it => it.note).length, 0);
     out += `<td>${r.abs ? r.abs + '×' : ''}</td><td>${r.late ? r.late + '×' : ''}</td><td>${r.mat ? r.mat + '×' : ''}</td><td>${nNotes || ''}</td>`;
-    return `<tr data-act="student" data-s="${s.id}"><td class="nm">${esc(s.name)}</td>${out}</tr>`;
+    return `<tr data-act="student" data-s="${s.id}"><td class="nm">${esc(s.name)} ${tagBadges(s)}</td>${out}</tr>`;
   });
   let avgRow = `<tr class="avg"><td class="nm">Klassenschnitt</td>`;
   for (let k = 0; k < cols.length; k++) { const a = avg(cols[k] || []); avgRow += `<td>${a == null ? '' : `${fmtN(a, 1)}<span class="sub">${gradeOf(a)}</span>`}</td>`; }
@@ -651,6 +672,91 @@ function vOverview() {
   h += `<div class="tbl-wrap"><table class="ov"><thead>${head1}${head2}</thead><tbody>${rows.join('')}${avgRow}</tbody></table></div>`;
   h += `<p class="help">Mündliche Quartalsnote = Ø der Tagesnoten (gerundet). * = von dir festgelegt. Quartal gesamt = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % Klassenarbeiten des Quartals (Zwischenstand; ohne Klassenarbeit nur mündlich). Halbjahr = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % schriftlich, Jahr = Ø der gerundeten Halbjahre. Zeile antippen für Details.</p>`;
   return h;
+}
+
+/* ---------- Schuljahreswechsel & Archiv ---------- */
+const nextYear = y => { const m = String(y).match(/^(\d{4})\s*\/\s*(\d{2,4})$/); return m ? `${+m[1] + 1}/${String(+m[2].slice(-2) + 1).padStart(2, '0')}` : y; };
+const bumpName = n => n.replace(/^(\d+)/, m => String(+m + 1));
+const plusYear = d => { if (!d) return ''; const x = parseISO(d); x.setFullYear(x.getFullYear() + 1); return iso(x); };
+function rolloverSheet() {
+  const S = db.settings, ny = nextYear(S.year);
+  showSheet(`<div class="row"><h2 class="grow">🎓 Neues Schuljahr</h2><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="banner small">Vorher bitte auf allen Geräten synchronisieren (☁️ ✓) bzw. eine Sicherung anlegen. Das Schuljahr ${esc(S.year)} wird archiviert und bleibt unter „Archiv“ lesbar.</div>
+    <div class="field"><label>Neues Schuljahr</label><input id="ro-year" value="${esc(ny)}"></div>
+    <div class="qgrid" style="margin-bottom:6px"><span></span><span class="small muted">Beginn</span><span class="small muted">Ende</span>
+      ${S.quarters.map((q, i) => `<b>${q.id}</b><input type="date" id="ro-qs-${i}" value="${plusYear(q.start)}"><input type="date" id="ro-qe-${i}" value="${plusYear(q.end)}">`).join('')}</div>
+    <p class="help">Vorschlag: Daten des alten Jahres + 1 Jahr. Bitte an die Termine deiner Schule anpassen (in NRW beginnt 2027/28 am 1.9.2027).</p>
+    <h3>Lerngruppen übernehmen</h3>
+    ${db.classes.map(c => `<div class="row" style="margin-bottom:6px"><input type="checkbox" id="ro-keep-${c.id}" checked><span class="small" style="width:70px">${esc(c.name)} →</span><input id="ro-name-${c.id}" value="${esc(bumpName(c.name))}" class="grow"><span class="small muted">${c.students.length} SuS</span></div>`).join('')}
+    <label class="small" style="display:block;margin:8px 0 4px"><input type="checkbox" id="ro-tags" checked> Merkmale und Gesprächsprotokolle übernehmen</label>
+    <label class="small" style="display:block;margin-bottom:10px"><input type="checkbox" id="ro-tt"> Stundenplan übernehmen (meist ändert er sich)</label>
+    <button class="btn pri" style="width:100%" data-act="rolloverdo">Schuljahr wechseln</button>
+    <p class="help">Nicht übernommen werden: Tagesnoten, Klassenarbeiten, Quartalsnoten, Gesprächsnotizen – die bleiben im Archiv.</p>`);
+}
+async function doRollover() {
+  const S = db.settings, old = JSON.parse(JSON.stringify(db));
+  const ny = $('#ro-year').value.trim() || nextYear(S.year);
+  const quarters = S.quarters.map((q, i) => ({id: q.id, start: $('#ro-qs-' + i).value, end: $('#ro-qe-' + i).value}));
+  if (quarters.some(q => !q.start || !q.end)) return alert('Bitte alle Quartalsdaten ausfüllen.');
+  const keepTags = $('#ro-tags').checked, keepTT = $('#ro-tt').checked;
+  const keep = db.classes.filter(c => $('#ro-keep-' + c.id).checked).map(c => ({c, name: $('#ro-name-' + c.id).value.trim() || c.name}));
+  if (!confirm(`Schuljahr ${S.year} archivieren und ${ny} beginnen?\n\nÜbernommen: ${keep.map(k => k.name).join(', ') || 'keine Lerngruppen'}`)) return;
+  await snapAdd('Vor dem Schuljahreswechsel');
+  db.archives = [...(db.archives || []), {id: uid(), yearId: old.yearId, year: old.settings.year, at: Date.now(),
+    data: {settings: old.settings, classes: old.classes, lessons: old.lessons, examGrades: old.examGrades, examMt: old.examMt}}];
+  db.classes = keep.map(({c, name}) => Object.assign(newClass(name), {
+    students: c.students.map(s => keepTags ? JSON.parse(JSON.stringify(s)) : {id: s.id, name: s.name}),
+    timetable: keepTT ? JSON.parse(JSON.stringify(c.timetable)) : [],
+    protocols: keepTags ? JSON.parse(JSON.stringify(c.protocols || {})) : {}}));
+  db.lessons = {}; db.examGrades = {}; db.examMt = {};
+  db.deleted = {lessons: {}, exams: {}, classes: {}, students: {}, archives: db.deleted.archives || {}};
+  Object.assign(S, {year: ny, quarters, trackFrom: quarters[0].start});
+  db.yearId = 'y:' + ny + ':' + uid();
+  save(); closeSheet(); ui.cls = db.classes[0]?.id; ui.tab = 'einst'; render();
+  toast(`Willkommen im Schuljahr ${ny}! Bitte Stundenplan prüfen.`);
+}
+function archiveDb(a) {
+  return migrate({v: 1, updated: a.at, lastBackup: 0, yearId: a.yearId, archives: [], settings: JSON.parse(JSON.stringify(a.data.settings)),
+    classes: JSON.parse(JSON.stringify(a.data.classes)), lessons: JSON.parse(JSON.stringify(a.data.lessons)),
+    examGrades: JSON.parse(JSON.stringify(a.data.examGrades)), examMt: JSON.parse(JSON.stringify(a.data.examMt || {}))});
+}
+function viewArchive(id) {
+  const a = db.archives.find(x => x.id === id); if (!a) return;
+  ui.readonly = {year: a.year}; db = archiveDb(a); ui.cls = db.classes[0]?.id; ui.tab = 'uebersicht'; ui.lesson = null; ui.examId = null;
+  window.scrollTo(0, 0); render(); toast(`Archiv ${a.year} – nur lesen`);
+}
+function exitArchive() { ui.readonly = null; db = load(); ui.cls = db.classes[0]?.id; ui.tab = 'einst'; ui.lesson = null; ui.examId = null; render(); }
+
+/* ---------- Merkmale & Gesprächsprotokolle ---------- */
+const protosOf = (c, sid) => (c.protocols[sid] || []).filter(p => !p.deleted).sort((a, b) => a.date < b.date ? 1 : -1);
+const PROTO_KINDS = ['Elterngespräch', 'Elternsprechtag', 'Telefonat', 'Schülergespräch', 'Sonstiges'];
+function profileSection(c, s) {
+  const prot = protosOf(c, s.id);
+  return `<h3>Merkmale</h3>
+    <div class="tagpick">${TAGS.map(([k, , d]) => `<button class="${(s.tags || []).includes(k) ? 'on' : ''}" data-act="tagtoggle" data-s="${s.id}" data-t="${k}">${esc(d)}</button>`).join('')}</div>
+    <input style="width:100%" placeholder="Hinweis, z. B. Nachteilsausgleich: 15 Min. Zeitverlängerung" value="${esc(s.info || '')}" data-chg="sinfo" data-s="${s.id}">
+    <p class="help">Erscheint bei der Noteneingabe und in der Notenliste. Wird nie an die KI gesendet und im Bericht nur gedruckt, wenn du es ankreuzt.</p>
+    <h3>Gesprächsprotokolle</h3>
+    ${prot.length ? prot.map(p => `<div class="proto"><div class="row"><b class="grow">${fmtDL(p.date)} · ${esc(p.kind || '')}${p.with ? ' · ' + esc(p.with) : ''}</b><button class="btn sm" data-act="protoedit" data-s="${s.id}" data-p="${p.id}">✎</button></div>
+      ${p.topic ? `<div class="small" style="white-space:pre-wrap"><b>Inhalt:</b> ${esc(p.topic)}</div>` : ''}${p.agreed ? `<div class="small" style="white-space:pre-wrap"><b>Vereinbart:</b> ${esc(p.agreed)}</div>` : ''}
+      ${p.follow ? `<div class="small ${p.done ? 'muted' : ''}">📅 Wiedervorlage: ${fmtDL(p.follow)}${p.done ? ' – erledigt ✓' : ''}</div>` : ''}</div>`).join('')
+      : '<div class="small muted" style="margin-bottom:8px">Noch keine Gespräche protokolliert.</div>'}
+    <button class="btn sm" data-act="protoedit" data-s="${s.id}">+ Gespräch protokollieren</button>`;
+}
+function protoSheet(sid, pid) {
+  const c = curCls(), s = c.students.find(x => x.id === sid);
+  const p = (c.protocols[sid] || []).find(x => x.id === pid) || {date: today(), kind: 'Elterngespräch', with: '', topic: '', agreed: '', follow: '', done: false};
+  ui.protoEdit = {sid, pid: pid || null};
+  showSheet(`<div class="row"><h2 class="grow">📝 Gespräch – ${esc(s.name)}</h2><button class="btn sm" data-act="student" data-s="${sid}">‹ Zurück</button></div>
+    <div class="row wrap"><div class="field"><label>Datum</label><input type="date" id="pr-date" value="${p.date}"></div>
+      <div class="field"><label>Art</label><select id="pr-kind">${PROTO_KINDS.map(k => `<option ${p.kind === k ? 'selected' : ''}>${k}</option>`).join('')}</select></div></div>
+    <div class="field"><label>Teilnehmende</label><input id="pr-with" value="${esc(p.with)}" placeholder="z. B. Mutter, Klassenleitung"></div>
+    <div class="field"><label>Inhalt / Anlass</label><textarea id="pr-topic" style="min-height:90px">${esc(p.topic)}</textarea></div>
+    <div class="field"><label>Vereinbarungen</label><textarea id="pr-agreed" style="min-height:70px">${esc(p.agreed)}</textarea></div>
+    <div class="row wrap"><div class="field"><label>Wiedervorlage (optional)</label><input type="date" id="pr-follow" value="${p.follow || ''}"></div>
+      ${pid ? `<label class="small" style="margin-top:14px"><input type="checkbox" id="pr-done" ${p.done ? 'checked' : ''}> Wiedervorlage erledigt</label>` : ''}</div>
+    <div class="row"><button class="btn pri grow" data-act="protosave">Speichern</button>${pid ? '<button class="btn danger" data-act="protodel">Löschen</button>' : ''}</div>
+    <p class="help">An der Wiedervorlage erinnert dich die App unter „Heute“ bei den Hinweisen.</p>`);
 }
 
 function studentSheet(sid) {
@@ -672,6 +778,7 @@ function studentSheet(sid) {
     h += `<div class="small" style="margin-top:4px">Ø mündl. ${fmtN(r.h[i].mdl, 2) || '–'} · Ø schriftl. ${fmtN(r.h[i].schr, 2) || '–'} → <b>${r.h[i].tot == null ? '–' : `${fmtN(r.h[i].tot, 2)} P. = ${gradeOf(r.h[i].tot)}`}</b></div>`;
   });
   h += `<h3>Ganzjahr</h3><div><b>${r.year == null ? '–' : `${fmtN(r.year, 1)} P. = ${gradeOf(r.year)}`}</b></div>`;
+  h += profileSection(c, s);
   h += talkSection(c, s);
   h += `<h3>Bericht für Elterngespräch</h3>${reportOptions('print1', `data-s="${s.id}"`)}`;
   showSheet(h);
@@ -744,7 +851,7 @@ function vExam() {
   h += examStatsCard(c, e);
   h += `<div class="card slist">` + c.students.map((s, i) => {
     const g = m[s.id] || '';
-    return `<div class="st"><span class="nr">${i + 1}</span><div class="grow">${esc(s.name)}</div><button class="chip ${g ? 'has ' + gcls(g) : ''}" data-act="pick" data-k="exam" data-s="${s.id}">${g || '+'}</button></div>`;
+    return `<div class="st"><span class="nr">${i + 1}</span><div class="grow">${esc(s.name)} ${tagBadges(s)}${s.info && (s.tags || []).includes('na') ? `<span class="sub">${esc(s.info)}</span>` : ''}</div><button class="chip ${g ? 'has ' + gcls(g) : ''}" data-act="pick" data-k="exam" data-s="${s.id}">${g || '+'}</button></div>`;
   }).join('') + `</div><p class="help">Nach jeder Note springt die Auswahl zur nächsten Person.</p>`;
   return h;
 }
@@ -768,6 +875,13 @@ function vSettings() {
     ${S.quarters.map((q, i) => `<b>${q.id}</b><input type="date" value="${q.start}" data-chg="quarter" data-i="${i}" data-f="start"><input type="date" value="${q.end}" data-chg="quarter" data-i="${i}" data-f="end">`).join('')}</div>
     <p class="help">Tagesnoten werden über ihr Datum dem Quartal zugeordnet. Bitte an die Termine deiner Schule anpassen.</p>
     <div class="field"><label>Gewicht mündlich in der Halbjahresnote (%)</label><input type="number" min="0" max="100" step="5" style="width:90px" value="${S.oralWeight}" data-chg="set" data-f="oralWeight"></div></div>`;
+  h += `<h3>Schuljahreswechsel & Archiv</h3><div class="card">
+    <p class="help" style="margin-top:0">Am Ende des Schuljahres: Das alte Jahr wird archiviert (bleibt lesbar, druckbar und exportierbar), Lerngruppen und Schüler:innen werden ins neue Jahr übernommen – z. B. 6b → 7b.</p>
+    <button class="btn pri sm" data-act="rollover" ${ui.readonly ? 'disabled' : ''}>🎓 Neues Schuljahr beginnen …</button>
+    <div style="margin-top:12px">${(db.archives || []).length ? db.archives.map(a => `<div class="row wrap" style="padding:6px 0;border-top:1px solid var(--line)"><div class="grow"><b>📦 Schuljahr ${esc(a.year)}</b><div class="small muted">archiviert am ${fmtDL(iso(new Date(a.at)))} · ${a.data.classes.map(c => esc(c.name)).join(', ')}</div></div>
+      <button class="btn sm" data-act="archview" data-id="${a.id}">Ansehen</button><button class="btn sm" data-act="archdl" data-id="${a.id}">💾</button><button class="btn sm danger" data-act="archdel" data-id="${a.id}">✕</button></div>`).join('')
+      : '<div class="small muted">Noch keine archivierten Schuljahre.</div>'}</div>
+    <p class="help">Datenschutz: Persönliche Notizen und Noten nur so lange aufbewahren wie nötig – alte Archive kannst du mit ✕ löschen (vorher ggf. mit 💾 als Datei sichern).</p></div>`;
   h += `<h3>Ferien & freie Tage</h3><div class="card">
     <div class="small" style="margin-bottom:8px">Schulferien NRW 2026/27 und 2027/28 sowie Feiertage an Schultagen sind eingetragen. Die <b>3 beweglichen Ferientage</b> legt deine Schule selbst fest – bitte mit „+ Zeitraum“ ergänzen.</div>
     <div class="row wrap" style="margin-bottom:8px"><button class="btn sm" data-act="nrw">🗓 NRW-Ferien erneut eintragen</button></div>
@@ -996,6 +1110,21 @@ function showImportSheet(j, fname) {
 function mergeDb(localDb, incomingDb) {
   const clone = x => JSON.parse(JSON.stringify(x));
   const A = migrate(clone(localDb)), B = migrate(clone(incomingDb));
+  const delArch = {...A.deleted.archives, ...B.deleted.archives};
+  const unionArchives = (base, other) => {
+    for (const ar of other) if (!base.some(x => x.id === ar.id)) base.push(ar);
+    return base.filter(ar => !delArch[ar.id]).sort((a, b) => a.at - b.at);
+  };
+  // Verschiedene Schuljahre: Das Gerät, das den Wechsel schon gemacht hat, gewinnt (das alte Jahr steckt in seinem Archiv)
+  if (A.yearId !== B.yearId) {
+    const aNewer = A.archives.some(x => x.yearId === B.yearId), bNewer = B.archives.some(x => x.yearId === A.yearId);
+    const win = aNewer ? A : bNewer ? B : (A.updated >= B.updated ? A : B), lose = win === A ? B : A;
+    const out = clone(win);
+    out.archives = unionArchives(out.archives, lose.archives);
+    out.deleted.archives = delArch;
+    out.updated = Date.now(); out.lastBackup = localDb.lastBackup;
+    return out;
+  }
   const newer = B.updated > A.updated ? B : A, older = newer === A ? B : A;
   const del = {};
   for (const k of ['lessons', 'exams', 'classes', 'students']) {
@@ -1003,6 +1132,7 @@ function mergeDb(localDb, incomingDb) {
     for (const [id, t] of Object.entries(B.deleted[k])) del[k][id] = Math.max(del[k][id] || 0, t);
   }
   const out = clone(newer); out.deleted = del;
+  del.archives = delArch; out.archives = unionArchives(out.archives, older.archives);
   // Ferien: Vereinigung
   for (const h of older.settings.holidays) if (!out.settings.holidays.some(x => x.start === h.start && x.end === h.end)) out.settings.holidays.push(h);
   // Lerngruppen
@@ -1019,6 +1149,11 @@ function mergeDb(localDb, incomingDb) {
     c.exams = c.exams.filter(e => !del.exams[e.id]);
     for (const [sid, v] of Object.entries(o.overrides)) if (!c.overrides[sid]) c.overrides[sid] = v;
     for (const [sid, v] of Object.entries(o.talk)) if (!c.talk[sid] || (v.at || 0) > (c.talk[sid].at || 0)) c.talk[sid] = v;
+    // Gesprächsprotokolle: pro Protokoll die zuletzt bearbeitete Fassung (Löschen = Markierung, damit es nicht zurückkommt)
+    for (const [sid, arr] of Object.entries(o.protocols)) {
+      const cur = c.protocols[sid] ||= [];
+      for (const p of arr) { const i = cur.findIndex(x => x.id === p.id); if (i < 0) cur.push(p); else if ((p.mt || 0) > (cur[i].mt || 0)) cur[i] = p; }
+    }
     out.classes.push(c);
   }
   // Stunden: zuletzt bearbeitete Fassung gewinnt
@@ -1068,7 +1203,7 @@ async function idbReq(store, mode, fn) {
 }
 const SNAP_MAX = 10;
 async function snapAdd(label) {
-  if (!hasData()) return;
+  if (!hasData() || ui.readonly) return;
   try {
     await idbReq('snaps', 'readwrite', s => s.add({at: Date.now(), label, updated: db.updated, data: JSON.stringify(db)}));
     const all = (await idbReq('snaps', 'readonly', s => s.getAllKeys())) || [];
@@ -1195,7 +1330,7 @@ async function syncDecrypt(w, interactive) {
 const dataSig = d => JSON.stringify([d.lessons, d.examGrades, d.classes.map(c => [c.id, c.students, c.exams, c.timetable, c.overrides, c.talk])]);
 
 async function syncNow(interactive) {
-  if (!dbxOn() || syncState.busy) return;
+  if (!dbxOn() || syncState.busy || ui.readonly) return;
   if (!navigator.onLine) { syncState.err = 'offline – wird nachgeholt'; updSyncUi(); return; }
   syncState.busy = true; syncState.err = ''; updSyncUi();
   const sigBefore = dataSig(db);
@@ -1301,7 +1436,7 @@ function exportXlsx() {
       for (const e of ex[i]) head.push(`${e.title} (${e.quarter}${e.date ? ', ' + fmtDL(e.date) : ''})`);
       head.push(`Ø mündl. ${hj.short} (Pkt.)`, `Ø schriftl. ${hj.short} (Pkt.)`, `${hj.short} (Pkt.)`, `${hj.short} Note`);
     });
-    head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt');
+    head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt', 'Merkmale');
     const rows = [head];
     c.students.forEach((s, si) => {
       const r = calcStudent(c, s), row = [si + 1, s.name];
@@ -1310,7 +1445,7 @@ function exportXlsx() {
         for (const e of ex[i]) row.push((db.examGrades[e.id] || {})[s.id] || '');
         row.push(r2(r.h[i].mdl), r2(r.h[i].schr), r2(r.h[i].tot), gradeOf(r.h[i].tot));
       });
-      row.push(r2(r.year), gradeOf(r.year), r.abs || '', r.late || '', r.mat || '');
+      row.push(r2(r.year), gradeOf(r.year), r.abs || '', r.late || '', r.mat || '', tagText(s));
       rows.push(row);
     });
     rows.push([]); const note = ['', '* = manuell festgelegte Quartalsnote. Stand: ' + new Date(db.updated).toLocaleString('de-DE')]; rows.push(note);
@@ -1422,6 +1557,9 @@ function offlineTalkNotes(c, s) {
   L.push('', 'Stärken:'); L.push(...(strong.length ? strong.map(x => '• ' + x) : ['• (aus den Daten nicht erkennbar – eigene Beobachtung ergänzen)']));
   L.push('', 'Entwicklungsfelder:'); L.push(...(weak.length ? weak.map(x => '• ' + x) : ['• keine Auffälligkeiten in den Daten']));
   if (notes.length) { L.push('', 'Deine Notizen:'); L.push(...notes.map(it => `• ${fmtDS(it.d)} ${it.note}`)); }
+  if (tagText(s)) { L.push('', 'Merkmale (beachten):'); L.push('• ' + tagText(s)); }
+  const lastP = protosOf(c, s.id)[0];
+  if (lastP) { L.push('', 'Letztes Gespräch:'); L.push(`• ${fmtDS(lastP.date)} ${lastP.kind}${lastP.agreed ? ' – vereinbart: ' + lastP.agreed : ''}`); }
 
   if (strong.length) talk.push(`Mit dem Positiven beginnen: ${strong[0]}.`);
   if (oral != null && oral < 7) { talk.push(`Wie erleben Sie ${fn} zu Hause – traut sich ${fn}, vor anderen zu sprechen?`); home.push('beim Abendessen vom Schultag oder einem Buch erzählen lassen'); }
@@ -1551,10 +1689,15 @@ function randomPick() {
 
 /* ================= Hinweise ================= */
 function warnings(onlyCid) {
-  const t = today(), q = quarterOf(t); if (!q) return [];
+  const t = today(), q = quarterOf(t);
+  // fällige Wiedervorlagen aus Gesprächsprotokollen (auch außerhalb der Quartale)
+  const due = [];
+  for (const c of db.classes) if (!onlyCid || c.id === onlyCid) for (const s of c.students)
+    for (const p of protosOf(c, s.id)) if (p.follow && !p.done && p.follow <= t) due.push({c, s, icon: '📅', txt: `Wiedervorlage: ${p.kind} vom ${fmtDL(p.date)}${p.agreed ? ' – ' + p.agreed.slice(0, 60) : ''}`});
+  if (!q) return due;
   const S = db.settings, Q = S.quarters.find(x => x.id === q);
   const elapsed = (parseISO(t) - parseISO(Q.start)) / Math.max(1, parseISO(Q.end) - parseISO(Q.start));
-  const hi = HJ.findIndex(h => h.qs.includes(q)), hj = HJ[hi], out = [];
+  const hi = HJ.findIndex(h => h.qs.includes(q)), hj = HJ[hi], out = due;
   for (const c of db.classes) {
     if (onlyCid && c.id !== onlyCid) continue;
     for (const s of c.students) {
@@ -1581,6 +1724,7 @@ function openWarnSheet() {
 function reportHtml(c, s, opt) {
   const r = calcStudent(c, s), dash = x => (x == null || x === '') ? '–' : x;
   let h = `<div class="rep"><h1>${esc(s.name)}</h1><div>Deutsch · ${esc(c.name)} · Schuljahr ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')}</div>`;
+  if (opt.tags && tagText(s)) h += `<div style="margin-top:4px"><b>Merkmale:</b> ${esc(tagText(s))}</div>`;
   h += `<h2>Mündliche Mitarbeit</h2><table><tr><th>Quartal</th><th>Note</th><th>Tagesnoten</th><th>krank</th><th>verspätet</th><th>Material vergessen</th></tr>` +
     QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td><b>${dash(o.final == null ? '' : gradeOf(o.final))}</b></td><td>${o.n}</td><td>${o.abs}</td><td>${o.late}</td><td>${o.mat}</td></tr>`; }).join('') + `</table>`;
   h += `<h2>Quartalsnoten gesamt (Zwischenstand)</h2><table><tr><th>Quartal</th><th>mündlich</th><th>Klassenarbeiten</th><th>Quartal gesamt</th></tr>` +
@@ -1595,16 +1739,20 @@ function reportHtml(c, s, opt) {
     const ns = QS.flatMap(q => r.q[q].items.filter(it => it.note));
     h += `<h2>Notizen</h2>` + (ns.length ? `<table>${ns.map(it => `<tr><td style="width:85px">${fmtDL(it.d)}</td><td>${esc(it.note)}</td></tr>`).join('')}</table>` : '<div>keine</div>');
   }
-  if (opt.talk && (c.talk || {})[s.id]) h += `<h2>Vorbereitung Gespräch</h2><div style="white-space:pre-wrap">${esc(c.talk[s.id].text)}</div>`;
+  if (opt.protos) {
+    const ps = protosOf(c, s.id);
+    h += `<h2>Gesprächsprotokolle</h2>` + (ps.length ? `<table><tr><th style="width:85px">Datum</th><th>Art / Teilnehmende</th><th>Inhalt</th><th>Vereinbart</th></tr>${ps.map(p => `<tr><td>${fmtDL(p.date)}</td><td>${esc(p.kind)}${p.with ? '<br>' + esc(p.with) : ''}</td><td style="white-space:pre-wrap">${esc(p.topic)}</td><td style="white-space:pre-wrap">${esc(p.agreed)}</td></tr>`).join('')}</table>` : '<div>keine</div>');
+  }
+  if (opt.talk && (c.talk || {})[s.id]) h +=`<h2>Vorbereitung Gespräch</h2><div style="white-space:pre-wrap">${esc(c.talk[s.id].text)}</div>`;
   if (opt.lines) h += `<h2>Gesprächsnotizen</h2>` + '<div style="border-bottom:1px solid #888;height:28px"></div>'.repeat(7);
   return h + `</div>`;
 }
 function reportOptions(btnAct, extra = '') {
-  return `<div class="row wrap small" style="margin:6px 0 8px"><label><input type="checkbox" id="rep-notes" checked> Notizen mitdrucken</label><label><input type="checkbox" id="rep-talk" checked> Gesprächsnotizen mitdrucken</label><label><input type="checkbox" id="rep-lines" checked> Linien für Gesprächsnotizen</label></div>
+  return `<div class="row wrap small" style="margin:6px 0 8px"><label><input type="checkbox" id="rep-notes" checked> Notizen mitdrucken</label><label><input type="checkbox" id="rep-talk" checked> Gesprächsnotizen mitdrucken</label><label><input type="checkbox" id="rep-lines" checked> Linien für Gesprächsnotizen</label><label><input type="checkbox" id="rep-tags"> Merkmale (LRS, NA …)</label><label><input type="checkbox" id="rep-protos"> Gesprächsprotokolle</label></div>
     <button class="btn pri" data-act="${btnAct}" ${extra}>🖨 Drucken / als PDF speichern</button>`;
 }
 function printReports(c, list) {
-  const opt = {notes: $('#rep-notes').checked, lines: $('#rep-lines').checked, talk: $('#rep-talk').checked};
+  const opt = {notes: $('#rep-notes').checked, lines: $('#rep-lines').checked, talk: $('#rep-talk').checked, tags: $('#rep-tags').checked, protos: $('#rep-protos').checked};
   $('#print').innerHTML = list.map(s => reportHtml(c, s, opt)).join('');
   closeSheet();
   setTimeout(() => window.print(), 100);
@@ -1629,7 +1777,7 @@ function conferenceHtml(c, which) {
     h += `<tr${close ? ' class="close"' : ''}><td>${x.i + 1}</td><td>${esc(x.s.name)}</td>${hj.qs.map(q => `<td>${r.q[q].final == null ? '–' : gradeOf(r.q[q].final) + (r.q[q].override ? '*' : '')}</td>`).join('')}
       <td>${pp(h2.mdl)}</td><td>${pp(h2.schr)}</td><td>${pp(h2.tot)}</td><td><b>${h2.tot == null ? '–' : gradeOf(h2.tot)}</b></td>
       ${year ? `<td>${r.h[0].tot == null ? '–' : gradeOf(r.h[0].tot)}</td><td>${pp(r.year)}</td><td><b>${r.year == null ? '–' : gradeOf(r.year)}</b></td>` : ''}
-      <td>${abs || ''}</td><td>${close ? `⚖ knapp – auch ${altGrade(p)} vertretbar` : ''}</td></tr>`;
+      <td>${abs || ''}</td><td>${[(x.s.tags || []).map(t => (TAGS.find(d => d[0] === t) || [])[1]).filter(Boolean).join(', '), close ? `⚖ knapp – auch ${altGrade(p)} vertretbar` : ''].filter(Boolean).join(' · ')}</td></tr>`;
   }
   h += `</table><h2>Notenspiegel</h2><table style="width:auto"><tr>${['1', '2', '3', '4', '5', '6'].map(g => `<th style="text-align:center;width:44px">${g}</th>`).join('')}<th>Ø</th></tr>
     <tr>${['1', '2', '3', '4', '5', '6'].map(g => `<td style="text-align:center">${dist[g] || 0}</td>`).join('')}<td>${(() => { const a = avg(rows.map(key).filter(x => x != null)); return a == null ? '–' : `${fmtN(a, 1)} P. (${gradeOf(a)})`; })()}</td></tr></table>
@@ -1753,6 +1901,39 @@ const ACT = {
     dbxConnect(k);
   },
   dbxoff: () => { if (confirm('Verbindung zu Dropbox trennen?\n\nDie Daten auf diesem Gerät bleiben erhalten; die Datei in Dropbox bleibt ebenfalls liegen.')) dbxDisconnect(); },
+  rollover: () => rolloverSheet(),
+  rolloverdo: () => doRollover(),
+  archview: d => viewArchive(d.id),
+  archexit: () => exitArchive(),
+  archdl: async d => {
+    const a = db.archives.find(x => x.id === d.id); if (!a) return;
+    const cur = db; db = archiveDb(a);
+    try { const f = await backupFile(false); downloadBlob(f, f.name.replace('Sicherung', 'Archiv-' + a.year.replace('/', '-'))); } finally { db = cur; }
+  },
+  archdel: d => {
+    const a = db.archives.find(x => x.id === d.id); if (!a) return;
+    if (!confirm(`Archiv ${a.year} endgültig löschen?\n\nTipp: Vorher mit 💾 als Datei sichern.`)) return;
+    db.archives = db.archives.filter(x => x.id !== a.id); db.deleted.archives[a.id] = Date.now(); save(); render();
+  },
+  tagtoggle: d => {
+    const s = curCls().students.find(x => x.id === d.s); s.tags ||= [];
+    s.tags = s.tags.includes(d.t) ? s.tags.filter(t => t !== d.t) : [...s.tags, d.t];
+    save(); render(); studentSheet(d.s);
+  },
+  protoedit: d => protoSheet(d.s, d.p),
+  protosave: () => {
+    const {sid, pid} = ui.protoEdit, c = curCls(), arr = c.protocols[sid] ||= [];
+    const p = pid ? arr.find(x => x.id === pid) : (arr.push({id: uid()}), arr[arr.length - 1]);
+    Object.assign(p, {date: $('#pr-date').value || today(), kind: $('#pr-kind').value, with: $('#pr-with').value.trim(), topic: $('#pr-topic').value.trim(),
+      agreed: $('#pr-agreed').value.trim(), follow: $('#pr-follow').value, done: $('#pr-done') ? $('#pr-done').checked : false, mt: Date.now()});
+    save(); render(); studentSheet(sid); toast('Gespräch gespeichert');
+  },
+  protodel: () => {
+    if (!confirm('Dieses Gesprächsprotokoll löschen?')) return;
+    const {sid, pid} = ui.protoEdit, p = (curCls().protocols[sid] || []).find(x => x.id === pid);
+    if (p) { Object.assign(p, {deleted: true, topic: '', agreed: '', with: '', mt: Date.now()}); }
+    save(); render(); studentSheet(sid);
+  },
   importmerge: () => doImport('merge'),
   importreplace: () => { if (confirm('Wirklich alle Daten auf diesem Gerät durch die Sicherung ersetzen?')) doImport('replace'); },
   pickdir: () => pickBackupDir(),
@@ -1859,6 +2040,7 @@ const CHG = {
   quarter: el => { db.settings.quarters[+el.dataset.i][el.dataset.f] = el.value; save(); render(); },
   talk: el => { const c = curCls(), t = c.talk[el.dataset.s]; if (t) { t.text = el.value; save(); } },
   theme: el => { localStorage.setItem('notenbuch-theme', el.value); applyTheme(); },
+  sinfo: el => { const s = curCls().students.find(x => x.id === el.dataset.s); if (s) { s.info = el.value.trim(); save(); render(); } },
   lockafter: el => { pinCfg.lockAfter = +el.value; localStorage.setItem(PINKEY, JSON.stringify(pinCfg)); },
   hol: el => { db.settings.holidays[+el.dataset.i][el.dataset.f] = el.value; save(); },
 };
