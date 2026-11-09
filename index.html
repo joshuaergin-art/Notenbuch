@@ -1958,18 +1958,42 @@ const QI_GROUPS = [
   ]},
 ];
 const QI_DEV = [['d', 'deutlich verbessert'], ['l', 'etwas verbessert'], ['g', 'gleichbleibend'], ['n', 'nachgelassen']];
-const QI_STR = [['mot', 'Lernfreude'], ['hilf', 'Hilfsbereitschaft'], ['sorg', 'Sorgfalt'], ['ausd', 'Ausdauer'], ['zuv', 'Zuverlässigkeit'], ['kreativ', 'Kreativität'], ['schnell', 'schnelle Auffassungsgabe'], ['ideen', 'gute Ideen im Unterrichtsgespräch']];
-const QI_STEPS = [
-  ['melden', 'häufiger beteiligen', 'sich häufiger am Unterricht beteiligen'],
-  ['konz', 'konzentrierter arbeiten', 'konzentrierter arbeiten'],
-  ['lesen', 'regelmäßig lesen', 'regelmäßig lesen'],
-  ['ueber', 'Texte überarbeiten', 'eigene Texte sorgfältiger überarbeiten'],
-  ['recht', 'Rechtschreibung üben', 'die Rechtschreibung weiter üben'],
-  ['mat', 'Material mitbringen', 'das Arbeitsmaterial vollständig mitbringen'],
-  ['aufg', 'Aufgaben vollständig', 'Aufgaben vollständiger erledigen'],
-  ['regeln', 'Regeln einhalten', 'sich stärker an die Gesprächsregeln halten'],
+// [id, Knopf, Wortlaut im Text, Mehrzahl?]
+const QI_STR = [
+  ['mot', 'Lernfreude', 'die Lernfreude'], ['einsatz', 'Anstrengungsbereitschaft', 'die Anstrengungsbereitschaft'], ['interesse', 'Interesse am Fach', 'das Interesse am Fach'],
+  ['neug', 'Neugier', 'die Neugier'], ['ausd', 'Ausdauer', 'die Ausdauer'], ['sorg', 'Sorgfalt', 'die Sorgfalt'], ['zuv', 'Zuverlässigkeit', 'die Zuverlässigkeit'],
+  ['selbst', 'Selbstständigkeit', 'die Selbstständigkeit'], ['schnell', 'schnelle Auffassungsgabe', 'die schnelle Auffassungsgabe'], ['kreativ', 'Kreativität', 'die Kreativität'],
+  ['fant', 'Fantasie beim Schreiben', 'die Fantasie beim Schreiben'], ['ausdr', 'sprachlicher Ausdruck', 'die sprachliche Ausdrucksfähigkeit'], ['lese', 'Freude am Lesen', 'die Freude am Lesen'],
+  ['ideen', 'gute Ideen im Gespräch', 'die guten Ideen im Unterrichtsgespräch', true], ['meinung', 'vertritt eigene Meinung', 'die Bereitschaft, die eigene Meinung zu vertreten'],
+  ['hilf', 'Hilfsbereitschaft', 'die Hilfsbereitschaft'], ['team', 'Teamfähigkeit', 'die Teamfähigkeit'], ['fair', 'Fairness', 'die Fairness'],
+  ['hoefl', 'Höflichkeit', 'die Höflichkeit'], ['verant', 'Verantwortungsbewusstsein', 'das Verantwortungsbewusstsein'],
 ];
-const qiGet = (c, q, sid) => ((c.qItems[q] ||= {})[sid] ||= {pick: {}, st: [], sp: [], dev: '', extra: '', facts: false, edited: false, text: ''});
+// Entwicklungsfelder: Wortlaut steht immer im Dativ nach „bei“
+const QI_WEAK = [
+  ['recht', 'Rechtschreibung', 'beim Rechtschreiben'], ['zeichen', 'Zeichensetzung', 'bei der Zeichensetzung'], ['gram', 'Grammatik', 'bei der Grammatik'],
+  ['wort', 'Wortschatz', 'beim Wortschatz'], ['ausdr', 'schriftlicher Ausdruck', 'beim schriftlichen Ausdruck'], ['glied', 'Texte gliedern', 'beim Gliedern eigener Texte'],
+  ['lesefl', 'flüssiges Lesen', 'beim flüssigen Lesen'], ['textv', 'Textverständnis', 'beim Verstehen längerer Texte'], ['auftrag', 'Arbeitsaufträge verstehen', 'beim genauen Erfassen von Arbeitsaufträgen'],
+  ['konz', 'Konzentration', 'bei der Konzentration über längere Zeit'], ['tempo', 'Arbeitstempo', 'beim Arbeitstempo'], ['sorg', 'sorgfältiges Arbeiten', 'beim sorgfältigen Arbeiten'],
+  ['orga', 'Selbstorganisation', 'bei der Selbstorganisation'], ['heft', 'Heftführung', 'bei der Heftführung'], ['schrift', 'Lesbarkeit der Schrift', 'bei der Lesbarkeit der Schrift'],
+  ['mitarb', 'mündliche Beteiligung', 'bei der mündlichen Beteiligung'], ['zuhoer', 'Zuhören', 'beim Zuhören'], ['regeln', 'Gesprächsregeln', 'beim Einhalten von Gesprächsregeln'],
+  ['kritik', 'Umgang mit Kritik', 'beim Umgang mit Kritik'], ['team', 'Zusammenarbeit', 'bei der Zusammenarbeit mit anderen'],
+];
+const QI_STEPS = [
+  ['melden', 'häufiger beteiligen', 'sich häufiger am Unterricht beteiligen'], ['zutrauen', 'sich mehr zutrauen', 'sich mehr zutrauen'], ['vortrag', 'vor der Klasse vortragen', 'Ergebnisse häufiger vor der Klasse vorstellen'],
+  ['zuhoer', 'genauer zuhören', 'im Unterricht genauer zuhören'], ['konz', 'konzentrierter arbeiten', 'konzentrierter arbeiten'], ['selbst', 'selbstständiger arbeiten', 'selbstständiger arbeiten'],
+  ['tempo', 'Arbeitstempo steigern', 'das Arbeitstempo steigern'], ['auftrag', 'Aufträge genau lesen', 'Arbeitsaufträge genauer lesen'], ['aufg', 'Aufgaben vollständig', 'Aufgaben vollständiger erledigen'],
+  ['hausa', 'Hausaufgaben regelmäßig', 'die Hausaufgaben regelmäßig erledigen'], ['mat', 'Material mitbringen', 'das Arbeitsmaterial vollständig mitbringen'], ['heft', 'Heft ordentlich führen', 'das Heft ordentlicher führen'],
+  ['lesen', 'regelmäßig lesen', 'regelmäßig lesen'], ['wort', 'Wortschatz erweitern', 'den Wortschatz erweitern'], ['fach', 'Fachbegriffe verwenden', 'Fachbegriffe sicherer verwenden'],
+  ['hilfsm', 'Wörterbuch nutzen', 'Hilfsmittel wie das Wörterbuch häufiger nutzen'], ['glied', 'Texte klarer gliedern', 'eigene Texte klarer gliedern'], ['ueber', 'Texte überarbeiten', 'eigene Texte sorgfältiger überarbeiten'],
+  ['recht', 'Rechtschreibung üben', 'die Rechtschreibung weiter üben'], ['zeichen', 'Zeichensetzung üben', 'die Zeichensetzung weiter üben'], ['regeln', 'Regeln einhalten', 'sich stärker an die Gesprächsregeln halten'],
+  ['ruecks', 'rücksichtsvoller sein', 'rücksichtsvoller mit anderen umgehen'],
+];
+const qiGet = (c, q, sid) => {
+  const it = ((c.qItems[q] ||= {})[sid] ||= {pick: {}, st: [], sp: [], wk: [], dev: '', extra: '', facts: false, edited: false, text: '', seed: 0});
+  it.wk ||= [];
+  return it;
+};
+const qiHash = t => { let h = 2166136261; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619); h ^= h >>> 13; h = Math.imul(h, 1540483477); h ^= h >>> 15; return h >>> 0; };
 function qiBuild(c, s, q, it) {
   const name = firstName(s), mode = s.pron || 'name', pron = mode === 'er' ? 'er' : 'sie', dat = mode === 'er' ? 'ihm' : 'ihr';
   let used = false;
@@ -1977,24 +2001,38 @@ function qiBuild(c, s, q, it) {
   const sdat = () => { if (mode === 'name' || !used) { used = true; return name; } return dat; };
   const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1];
   const cap = x => x ? x.charAt(0).toUpperCase() + x.slice(1) : x;
+  // Pro Kind, Quartal und Satztyp eine feste Formulierung; innerhalb eines Textes wird keine doppelt verwendet.
+  const seen = {};
+  const v = (type, opts) => { const k = seen[type] = (seen[type] ?? -1) + 1; return opts[(qiHash(`${s.id}|${q}|${type}|${it.seed || 0}`) + k) % opts.length](); };
+  const S = () => cap(subj());
   const out = [];
-  if (it.dev === 'd') out.push(`${cap(subj())} hat sich in diesem Quartal deutlich verbessert.`);
-  if (it.dev === 'l') out.push(`${cap(subj())} hat sich in diesem Quartal etwas verbessert.`);
-  if (it.dev === 'g') out.push('Die Leistungen sind in diesem Quartal konstant geblieben.');
-  if (it.dev === 'n') out.push('Die Leistungen haben in diesem Quartal nachgelassen.');
+  if (it.dev === 'd') out.push(v('dev', [() => `${S()} hat sich in diesem Quartal deutlich verbessert.`, () => `In diesem Quartal hat ${subj()} deutliche Fortschritte gemacht.`, () => 'Erfreulich ist die deutliche Verbesserung in diesem Quartal.', () => `Gegenüber dem letzten Quartal hat sich ${subj()} klar gesteigert.`]));
+  if (it.dev === 'l') out.push(v('dev', [() => `${S()} hat sich in diesem Quartal etwas verbessert.`, () => 'In diesem Quartal sind leichte Fortschritte erkennbar.', () => `Gegenüber dem letzten Quartal hat sich ${subj()} etwas gesteigert.`, () => `${S()} hat in diesem Quartal kleine Fortschritte gemacht.`]));
+  if (it.dev === 'g') out.push(v('dev', [() => 'Die Leistungen sind in diesem Quartal konstant geblieben.', () => 'Die Leistungen sind im Vergleich zum letzten Quartal stabil.', () => `${S()} hat das Leistungsniveau des letzten Quartals gehalten.`]));
+  if (it.dev === 'n') out.push(v('dev', [() => 'Die Leistungen haben in diesem Quartal nachgelassen.', () => 'Im Vergleich zum letzten Quartal sind die Leistungen etwas zurückgegangen.', () => 'In diesem Quartal ist ein Rückgang der Leistungen zu beobachten.']));
   for (const g of QI_GROUPS) {
     const B = {3: [], 2: [], 1: [], 0: []};
     for (const i of g.items) if (it.pick[i.id] != null) B[it.pick[i.id]].push(i);
     const vr = b => `${b.v} ${b.r}`;
-    if (B[3].length) out.push(`${cap(subj())} ${list(B[3].map(vr))}.`);
-    if (B[2].length) out.push(`In der Regel ${B[2][0].v} ${subj()} ${B[2][0].r}${B[2].length > 1 ? (B[2].length > 2 ? ', ' : ' und ') + list(B[2].slice(1).map(vr)) : ''}.`);
-    if (B[1].length) out.push(`Teilweise gelingt es ${sdat()} schon, ${list(B[1].map(b => b.zu))}.`);
-    if (B[0].length) out.push(`Noch schwer fällt es ${sdat()}, ${list(B[0].map(b => b.zu))}.`);
+    const inv = a => `${a[0].v} ${subj()} ${a[0].r}${a.length > 1 ? (a.length > 2 ? ', ' : ' und ') + list(a.slice(1).map(vr)) : ''}`;
+    if (B[3].length) out.push(v('b3', [() => `${S()} ${list(B[3].map(vr))}.`, () => `Stets ${inv(B[3])}.`, () => `Erfreulich ist: ${S()} ${list(B[3].map(vr))}.`, () => `Durchweg ${inv(B[3])}.`]));
+    if (B[2].length) out.push(v('b2', [() => `In der Regel ${inv(B[2])}.`, () => `Meistens ${inv(B[2])}.`, () => `Überwiegend ${inv(B[2])}.`, () => `Häufig ${inv(B[2])}.`]));
+    const zu1 = list(B[1].map(b => b.zu)), zu0 = list(B[0].map(b => b.zu));
+    if (B[1].length) out.push(v('b1', [() => `Teilweise gelingt es ${sdat()} schon, ${zu1}.`, () => `Ansatzweise gelingt es ${sdat()} bereits, ${zu1}.`, () => `Zum Teil schafft ${subj()} es schon, ${zu1}.`, () => `Hin und wieder gelingt es ${sdat()}, ${zu1}.`]));
+    if (B[0].length) out.push(v('b0', [() => `Noch schwer fällt es ${sdat()}, ${zu0}.`, () => `Es fällt ${sdat()} noch schwer, ${zu0}.`, () => `Schwierigkeiten hat ${subj()} noch damit, ${zu0}.`, () => `Bisher gelingt es ${sdat()} noch nicht, ${zu0}.`]));
   }
-  const st = QI_STR.filter(x => it.st.includes(x[0])).map(x => x[1]);
-  if (st.length) out.push(`Besonders positiv ${st.length > 1 ? 'fallen' : 'fällt'} mir ${list(st)} auf.`);
+  const st = QI_STR.filter(x => it.st.includes(x[0]));
+  if (st.length) {
+    const pl = st.length > 1 || st[0][3], L = list(st.map(x => x[2]));
+    out.push(v('st', [() => `Besonders positiv ${pl ? 'fallen' : 'fällt'} mir ${L} auf.`, () => `Hervorzuheben ${pl ? 'sind' : 'ist'} ${L}.`, () => `${pl ? 'Besondere Stärken sind' : 'Eine besondere Stärke ist'} ${L}.`, () => `Sehr erfreulich ${pl ? 'sind' : 'ist'} ${L}.`, () => `Gut ${pl ? 'gefallen' : 'gefällt'} mir ${L}.`]));
+  }
+  const wk = QI_WEAK.filter(x => it.wk.includes(x[0]));
+  if (wk.length) {
+    const L = list(wk.map(x => x[2]));
+    out.push(v('wk', [() => `Unterstützung braucht ${subj()} noch ${L}.`, () => `Schwierigkeiten zeigen sich noch ${L}.`, () => `Entwicklungsbedarf sehe ich noch ${L}.`, () => `Mehr Übung braucht ${subj()} noch ${L}.`, () => `Verbessern kann ${subj()} sich noch ${L}.`]));
+  }
   const sp = QI_STEPS.filter(x => it.sp.includes(x[0])).map(x => x[2]);
-  if (sp.length) out.push(`In der nächsten Zeit sollte ${subj()} ${list(sp)}.`);
+  if (sp.length) out.push(v('sp', [() => `In der nächsten Zeit sollte ${subj()} ${list(sp)}.`, () => `Im nächsten Quartal sollte ${subj()} ${list(sp)}.`, () => `Als Nächstes sollte ${subj()} ${list(sp)}.`, () => `Für die kommenden Wochen gilt: ${S()} sollte ${list(sp)}.`]));
   if (it.facts) { const f = autoRemark(c, s.id, q); if (f) out.push(f); }
   const ex = (it.extra || '').trim();
   if (ex) out.push(/[.!?]$/.test(ex) ? ex : ex + '.');
@@ -2006,6 +2044,7 @@ function qiRefresh() {
   const {c, s, q, it} = qiCtx(), ta = $('#qi-text'); if (!ta) return;
   if (!it.edited) ta.value = qiBuild(c, s, q, it);
   $('#qi-regen').classList.toggle('hidden', !it.edited);
+  $('#qi-seed').classList.toggle('hidden', it.edited);
   $('#qi-state').textContent = it.edited ? 'Von dir geändert – Antippen ändert den Text nicht mehr.' : '';
 }
 function qiSheet(sid) {
@@ -2020,13 +2059,14 @@ function qiSheet(sid) {
     <h3>Entwicklung im Quartal</h3><div class="qi-item">${seg('dev', QI_DEV, it.dev)}</div>
     ${QI_GROUPS.map(gr => `<h3>${gr.t}</h3>` + gr.items.map(i => `<div class="qi-item"><div class="small">${i.l}</div>${seg(i.id, QI_SCALE, it.pick[i.id])}</div>`).join('')).join('')}
     <h3>Stärken</h3>${chips('st', QI_STR)}
-    <h3>Nächste Schritte</h3>${chips('sp', QI_STEPS)}
+    <h3>Entwicklungsfelder</h3>${chips('wk', QI_WEAK)}
+    <h3>Ziele / nächste Schritte</h3>${chips('sp', QI_STEPS)}
     <h3>Sonstiges</h3><input style="width:100%" data-chg="qiextra" value="${esc(it.extra)}" placeholder="eigener Satz, kommt ans Ende">
     ${facts ? `<label class="small" style="display:block;margin-top:8px"><input type="checkbox" data-chg="qifacts" ${it.facts ? 'checked' : ''}> Aus dem Unterricht anhängen: <span class="muted">${esc(facts)}</span></label>` : ''}
     ${cur && !Object.keys(it.pick).length && !it.dev && !it.st.length && !it.sp.length ? `<p class="help">Aktuelle Bemerkung: „${esc(cur)}“. „Übernehmen“ ersetzt sie, sobald hier ein Text steht.</p>` : ''}
     <div class="qi-out"><textarea id="qi-text" rows="4" data-chg="qitext" placeholder="Items antippen – hier entsteht der Text"></textarea>
       <div class="small muted" id="qi-state"></div>
-      <div class="row wrap" style="margin-top:6px"><button class="btn pri sm" data-act="qiuse" data-n="1">Übernehmen &amp; nächste Person ›</button><button class="btn sm" data-act="qiuse">Übernehmen</button><button class="btn sm hidden" id="qi-regen" data-act="qiregen">Text neu erzeugen</button></div></div>`);
+      <div class="row wrap" style="margin-top:6px"><button class="btn pri sm" data-act="qiuse" data-n="1">Übernehmen &amp; nächste Person ›</button><button class="btn sm" data-act="qiuse">Übernehmen</button><button class="btn sm" id="qi-seed" data-act="qiseed">🎲 Andere Formulierung</button><button class="btn sm hidden" id="qi-regen" data-act="qiregen">Text neu erzeugen</button></div></div>`);
   $('#sheetbody').scrollTop = 0;
   qiRefresh();
 }
@@ -2141,6 +2181,7 @@ const ACT = {
     t.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on'));
     t.classList.add('on'); save(); qiRefresh();
   },
+  qiseed: () => { const {it} = qiCtx(); it.seed = (it.seed || 0) + 1; qiTouch(it); qiRefresh(); },
   qiregen: () => { const {it} = qiCtx(); it.edited = false; it.text = ''; qiTouch(it); qiRefresh(); },
   qiuse: d => {
     if (ui.readonly) return toast('📦 Archiv – Änderungen werden nicht gespeichert');
