@@ -1,6 +1,6 @@
 ﻿// Offline-Cache: App-Dateien werden gespeichert, damit die App ohne Internet startet.
 // Bei einer neuen Version CACHE hochzählen.
-const CACHE = 'notenbuch-v19';
+const CACHE = 'notenbuch-v20';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

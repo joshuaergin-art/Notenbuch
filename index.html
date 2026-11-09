@@ -198,6 +198,17 @@ html.dark .weeksep::after{border-color:#2a3a52}
   .rep td,.rep th{border:1px solid #888;padding:3px 6px;text-align:left;vertical-align:top}
   .rep th{background:#eee}
 }
+.qi-item{padding:6px 0;border-top:1px solid var(--line)}
+.qi-item .small{margin-bottom:4px}
+.qi-seg{display:inline-flex;flex-wrap:wrap;gap:3px}
+.qi-seg button,.qi-chips button{font-size:13px;padding:5px 9px;border-radius:8px}
+.qi-seg button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+html.dark .qi-seg button.on,html.dark .qi-chips button.on{background:#2563eb;border-color:#2563eb;color:#fff}
+.qi-chips{display:flex;flex-wrap:wrap;gap:5px}
+.qi-chips button{border-radius:99px}
+.qi-chips button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.qi-out{position:sticky;bottom:-16px;background:var(--card);margin:12px -14px -16px;padding:10px 14px 16px;border-top:2px solid var(--pri);z-index:2}
+.qi-out textarea{min-height:0;font-size:14px}
 .icrow{display:flex;gap:3px;flex:none}
 .qrow{padding:8px 0;border-top:1px solid var(--line)}
 .qrow textarea{min-height:58px;margin-top:6px;font-size:14px}
@@ -277,7 +288,7 @@ function defaultExams() {
   return [['KA 1','Q1'],['KA 2','Q2'],['KA 3','Q2'],['KA 4','Q3'],['KA 5','Q4'],['KA 6','Q4']]
     .map(([t, q]) => ({id: uid(), title: t, quarter: q, date: '', weight: 1}));
 }
-function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, talk: {}, protocols: {}}; }
+function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, ovMt: {}, qRemarks: {}, qItems: {}, talk: {}, protocols: {}}; }
 
 // Schülermerkmale – sensible Daten: werden NIE an die KI gesendet und nur auf Wunsch gedruckt
 const TAGS = [
@@ -337,7 +348,7 @@ function migrate(j) {
   const d = defaults();
   j.settings = Object.assign(d.settings, j.settings || {});
   j.classes = j.classes || []; j.lessons = j.lessons || {}; j.examGrades = j.examGrades || {};
-  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.ovMt ||= {}; c.qRemarks ||= {}; c.talk ||= {}; c.protocols ||= {}; }
+  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.ovMt ||= {}; c.qRemarks ||= {}; c.qItems ||= {}; c.talk ||= {}; c.protocols ||= {}; }
   j.yearId ||= 'y:' + j.settings.year;   // eindeutig je Schuljahr, auf allen Geräten gleich
   j.archives ||= [];
   j.examMt ||= {}; j.deleted ||= {};
@@ -1204,6 +1215,7 @@ function mergeDb(localDb, incomingDb) {
     for (const [sid, v] of Object.entries(o.talk)) if (!c.talk[sid] || (v.at || 0) > (c.talk[sid].at || 0)) c.talk[sid] = v;
     // Quartalsbemerkungen: pro Person und Quartal gewinnt die zuletzt bearbeitete
     for (const [q, m] of Object.entries(o.qRemarks)) { const t = c.qRemarks[q] ||= {}; for (const [sid, e] of Object.entries(m)) if (!t[sid] || (e.mt || 0) > (t[sid].mt || 0)) t[sid] = e; }
+    for (const [q, m] of Object.entries(o.qItems)) { const t = c.qItems[q] ||= {}; for (const [sid, e] of Object.entries(m)) if (!t[sid] || (e.mt || 0) > (t[sid].mt || 0)) t[sid] = e; }
     // Gesprächsprotokolle: pro Protokoll die zuletzt bearbeitete Fassung (Löschen = Markierung, damit es nicht zurückkommt)
     for (const [sid, arr] of Object.entries(o.protocols)) {
       const cur = c.protocols[sid] ||= [];
@@ -1382,7 +1394,7 @@ async function syncDecrypt(w, interactive) {
   }
   throw new Error('Falsches Passwort');
 }
-const dataSig = d => JSON.stringify([d.lessons, d.examGrades, d.classes.map(c => [c.id, c.students, c.exams, c.timetable, c.overrides, c.talk, c.qRemarks])]);
+const dataSig = d => JSON.stringify([d.lessons, d.examGrades, d.classes.map(c => [c.id, c.students, c.exams, c.timetable, c.overrides, c.talk, c.qRemarks, c.qItems])]);
 
 async function syncNow(interactive) {
   if (!dbxOn() || syncState.busy || ui.readonly) return;
@@ -1907,7 +1919,7 @@ function qListSheet() {
     ${c.students.map((s, i) => { const g = qGrades(c, s, q), r = qRemark(c, s.id, q); return `<div class="qrow">
       <div class="row"><span class="nr">${i + 1}</span><b class="grow">${esc(s.name)}</b><span class="small">mündl. <b>${g.mdl}</b> · schriftl. <b>${g.schr}</b></span></div>
       <textarea class="qr${r.text ? '' : ' empty'}" rows="2" data-chg="qremark" data-s="${s.id}" placeholder="Keine Informationen – Bemerkung eintragen" ${ui.readonly ? 'disabled' : ''}>${esc(r.text)}</textarea>
-      <button class="btn sm${r.edited ? '' : ' hidden'}" data-act="qreset" data-s="${s.id}">↺ Zurück zum Vorschlag</button></div>`; }).join('')}`);
+      <button class="btn sm pri" data-act="qitems" data-s="${s.id}" ${ui.readonly ? 'disabled' : ''}>🧩 Text aus Items</button> <button class="btn sm${r.edited ? '' : ' hidden'}" data-act="qreset" data-s="${s.id}">↺ Zurück zum Vorschlag</button></div>`; }).join('')}`);
   $('#sheetbody').scrollTop = y;
   qListCount();
 }
@@ -1922,6 +1934,103 @@ function exportQuarterList() {
   downloadXlsx([{name: q, xml: sheetXml(rows, [5, 28, 11, 11, 70], [2, 4])}], `Quartalsliste_${safeFile(c.name)}_${q}_${safeFile(db.settings.year)}.xlsx`);
   toast('Excel-Datei erstellt');
 }
+
+/* ================= Bemerkungs-Baukasten (Items antippen → Text) ================= */
+const QI_SCALE = [['3', 'trifft zu'], ['2', 'meist'], ['1', 'teilweise'], ['0', 'noch nicht']];
+const QI_GROUPS = [
+  {t: 'Arbeitsverhalten', items: [
+    {id: 'konz', l: 'arbeitet konzentriert und ausdauernd', v: 'arbeitet', r: 'konzentriert und ausdauernd', zu: 'konzentriert und ausdauernd zu arbeiten'},
+    {id: 'betei', l: 'beteiligt sich aktiv am Unterricht', v: 'beteiligt', r: 'sich aktiv am Unterricht', zu: 'sich aktiv am Unterricht zu beteiligen'},
+    {id: 'sorg', l: 'erledigt Aufgaben sorgfältig und vollständig', v: 'erledigt', r: 'Aufgaben sorgfältig und vollständig', zu: 'Aufgaben sorgfältig und vollständig zu erledigen'},
+    {id: 'mat', l: 'bringt das Arbeitsmaterial zuverlässig mit', v: 'bringt', r: 'das Arbeitsmaterial zuverlässig mit', zu: 'das Arbeitsmaterial zuverlässig mitzubringen'},
+    {id: 'frag', l: 'fragt nach, wenn etwas unklar ist', v: 'fragt', r: 'nach, wenn etwas unklar ist', zu: 'nachzufragen, wenn etwas unklar ist'},
+  ]},
+  {t: 'Sozialverhalten', items: [
+    {id: 'team', l: 'arbeitet gut mit anderen zusammen', v: 'arbeitet', r: 'gut mit anderen zusammen', zu: 'gut mit anderen zusammenzuarbeiten'},
+    {id: 'regeln', l: 'hält sich an die Gesprächs- und Klassenregeln', v: 'hält', r: 'sich an die Gesprächs- und Klassenregeln', zu: 'sich an die Gesprächs- und Klassenregeln zu halten'},
+    {id: 'respekt', l: 'geht respektvoll mit anderen um', v: 'geht', r: 'respektvoll mit anderen um', zu: 'respektvoll mit anderen umzugehen'},
+  ]},
+  {t: 'Fachlich (Deutsch)', items: [
+    {id: 'sprech', l: 'drückt sich mündlich klar und verständlich aus', v: 'drückt', r: 'sich mündlich klar und verständlich aus', zu: 'sich mündlich klar und verständlich auszudrücken'},
+    {id: 'lesen', l: 'versteht Texte sicher', v: 'versteht', r: 'Texte sicher', zu: 'Texte sicher zu verstehen'},
+    {id: 'schreib', l: 'verfasst strukturierte und verständliche Texte', v: 'verfasst', r: 'strukturierte und verständliche Texte', zu: 'strukturierte und verständliche Texte zu verfassen'},
+    {id: 'recht', l: 'schreibt weitgehend fehlerfrei', v: 'schreibt', r: 'weitgehend fehlerfrei', zu: 'weitgehend fehlerfrei zu schreiben'},
+  ]},
+];
+const QI_DEV = [['d', 'deutlich verbessert'], ['l', 'etwas verbessert'], ['g', 'gleichbleibend'], ['n', 'nachgelassen']];
+const QI_STR = [['mot', 'Lernfreude'], ['hilf', 'Hilfsbereitschaft'], ['sorg', 'Sorgfalt'], ['ausd', 'Ausdauer'], ['zuv', 'Zuverlässigkeit'], ['kreativ', 'Kreativität'], ['schnell', 'schnelle Auffassungsgabe'], ['ideen', 'gute Ideen im Unterrichtsgespräch']];
+const QI_STEPS = [
+  ['melden', 'häufiger beteiligen', 'sich häufiger am Unterricht beteiligen'],
+  ['konz', 'konzentrierter arbeiten', 'konzentrierter arbeiten'],
+  ['lesen', 'regelmäßig lesen', 'regelmäßig lesen'],
+  ['ueber', 'Texte überarbeiten', 'eigene Texte sorgfältiger überarbeiten'],
+  ['recht', 'Rechtschreibung üben', 'die Rechtschreibung weiter üben'],
+  ['mat', 'Material mitbringen', 'das Arbeitsmaterial vollständig mitbringen'],
+  ['aufg', 'Aufgaben vollständig', 'Aufgaben vollständiger erledigen'],
+  ['regeln', 'Regeln einhalten', 'sich stärker an die Gesprächsregeln halten'],
+];
+const qiGet = (c, q, sid) => ((c.qItems[q] ||= {})[sid] ||= {pick: {}, st: [], sp: [], dev: '', extra: '', facts: false, edited: false, text: ''});
+function qiBuild(c, s, q, it) {
+  const name = firstName(s), mode = s.pron || 'name', pron = mode === 'er' ? 'er' : 'sie', dat = mode === 'er' ? 'ihm' : 'ihr';
+  let used = false;
+  const subj = () => { if (mode === 'name' || !used) { used = true; return name; } return pron; };
+  const sdat = () => { if (mode === 'name' || !used) { used = true; return name; } return dat; };
+  const list = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1];
+  const cap = x => x ? x.charAt(0).toUpperCase() + x.slice(1) : x;
+  const out = [];
+  if (it.dev === 'd') out.push(`${cap(subj())} hat sich in diesem Quartal deutlich verbessert.`);
+  if (it.dev === 'l') out.push(`${cap(subj())} hat sich in diesem Quartal etwas verbessert.`);
+  if (it.dev === 'g') out.push('Die Leistungen sind in diesem Quartal konstant geblieben.');
+  if (it.dev === 'n') out.push('Die Leistungen haben in diesem Quartal nachgelassen.');
+  for (const g of QI_GROUPS) {
+    const B = {3: [], 2: [], 1: [], 0: []};
+    for (const i of g.items) if (it.pick[i.id] != null) B[it.pick[i.id]].push(i);
+    const vr = b => `${b.v} ${b.r}`;
+    if (B[3].length) out.push(`${cap(subj())} ${list(B[3].map(vr))}.`);
+    if (B[2].length) out.push(`In der Regel ${B[2][0].v} ${subj()} ${B[2][0].r}${B[2].length > 1 ? (B[2].length > 2 ? ', ' : ' und ') + list(B[2].slice(1).map(vr)) : ''}.`);
+    if (B[1].length) out.push(`Teilweise gelingt es ${sdat()} schon, ${list(B[1].map(b => b.zu))}.`);
+    if (B[0].length) out.push(`Noch schwer fällt es ${sdat()}, ${list(B[0].map(b => b.zu))}.`);
+  }
+  const st = QI_STR.filter(x => it.st.includes(x[0])).map(x => x[1]);
+  if (st.length) out.push(`Besonders positiv ${st.length > 1 ? 'fallen' : 'fällt'} mir ${list(st)} auf.`);
+  const sp = QI_STEPS.filter(x => it.sp.includes(x[0])).map(x => x[2]);
+  if (sp.length) out.push(`In der nächsten Zeit sollte ${subj()} ${list(sp)}.`);
+  if (it.facts) { const f = autoRemark(c, s.id, q); if (f) out.push(f); }
+  const ex = (it.extra || '').trim();
+  if (ex) out.push(/[.!?]$/.test(ex) ? ex : ex + '.');
+  return out.join(' ');
+}
+function qiCtx() { const c = curCls(), s = c.students.find(x => x.id === ui.qi.sid), q = ui.qlist; return {c, s, q, it: qiGet(c, q, s.id)}; }
+function qiTouch(it) { it.mt = Date.now(); save(); }
+function qiRefresh() {
+  const {c, s, q, it} = qiCtx(), ta = $('#qi-text'); if (!ta) return;
+  if (!it.edited) ta.value = qiBuild(c, s, q, it);
+  $('#qi-regen').classList.toggle('hidden', !it.edited);
+  $('#qi-state').textContent = it.edited ? 'Von dir geändert – Antippen ändert den Text nicht mehr.' : '';
+}
+function qiSheet(sid) {
+  const c = curCls(), s = c.students.find(x => x.id === sid), q = ui.qlist, it = qiGet(c, q, sid), g = qGrades(c, s, q);
+  ui.qi = {sid};
+  const idx = c.students.findIndex(x => x.id === sid), cur = qRemark(c, sid, q).text, facts = autoRemark(c, sid, q);
+  const seg = (k, opts, val) => `<span class="qi-seg">${opts.map(([v, l]) => `<button class="${val === v ? 'on' : ''}" data-act="qiset" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</span>`;
+  const chips = (l, opts) => `<div class="qi-chips">${opts.map(x => `<button class="${it[l].includes(x[0]) ? 'on' : ''}" data-act="qichip" data-l="${l}" data-k="${x[0]}">${x[1]}</button>`).join('')}</div>`;
+  showSheet(`<div class="row"><button class="btn sm" data-act="qiback">‹ Liste</button><b class="grow" style="font-size:17px">${esc(s.name)}</b><span class="small muted">${idx + 1}/${c.students.length}</span></div>
+    <div class="small muted" style="margin:4px 0 8px">${q} · mündl. <b>${g.mdl}</b> · schriftl. <b>${g.schr}</b></div>
+    <div class="qi-item"><span class="small">Im Text</span> <span class="qi-seg">${[['name', 'nur Name'], ['sie', 'sie'], ['er', 'er']].map(([v, l]) => `<button class="${(s.pron || 'name') === v ? 'on' : ''}" data-act="qipron" data-v="${v}">${l}</button>`).join('')}</span></div>
+    <h3>Entwicklung im Quartal</h3><div class="qi-item">${seg('dev', QI_DEV, it.dev)}</div>
+    ${QI_GROUPS.map(gr => `<h3>${gr.t}</h3>` + gr.items.map(i => `<div class="qi-item"><div class="small">${i.l}</div>${seg(i.id, QI_SCALE, it.pick[i.id])}</div>`).join('')).join('')}
+    <h3>Stärken</h3>${chips('st', QI_STR)}
+    <h3>Nächste Schritte</h3>${chips('sp', QI_STEPS)}
+    <h3>Sonstiges</h3><input style="width:100%" data-chg="qiextra" value="${esc(it.extra)}" placeholder="eigener Satz, kommt ans Ende">
+    ${facts ? `<label class="small" style="display:block;margin-top:8px"><input type="checkbox" data-chg="qifacts" ${it.facts ? 'checked' : ''}> Aus dem Unterricht anhängen: <span class="muted">${esc(facts)}</span></label>` : ''}
+    ${cur && !Object.keys(it.pick).length && !it.dev && !it.st.length && !it.sp.length ? `<p class="help">Aktuelle Bemerkung: „${esc(cur)}“. „Übernehmen“ ersetzt sie, sobald hier ein Text steht.</p>` : ''}
+    <div class="qi-out"><textarea id="qi-text" rows="4" data-chg="qitext" placeholder="Items antippen – hier entsteht der Text"></textarea>
+      <div class="small muted" id="qi-state"></div>
+      <div class="row wrap" style="margin-top:6px"><button class="btn pri sm" data-act="qiuse" data-n="1">Übernehmen &amp; nächste Person ›</button><button class="btn sm" data-act="qiuse">Übernehmen</button><button class="btn sm hidden" id="qi-regen" data-act="qiregen">Text neu erzeugen</button></div></div>`);
+  $('#sheetbody').scrollTop = 0;
+  qiRefresh();
+}
+function qiBack() { qListSheet(); $('#sheetbody').scrollTop = ui.qlistY || 0; }
 
 /* ================= PIN-Sperre ================= */
 // Die PIN gilt nur für dieses Gerät und ist nicht Teil der Sicherung.
@@ -2013,6 +2122,34 @@ const ACT = {
   },
   confprint: d => exportConference(d.w),
   qlist: () => qListSheet(),
+  qitems: d => { ui.qlistY = $('#sheetbody').scrollTop; if (!ui.readonly) qFlush(); qiSheet(d.s); },
+  qiback: () => qiBack(),
+  qiset: (d, t) => {
+    const {it} = qiCtx(), isDev = d.k === 'dev', cur = isDev ? it.dev : it.pick[d.k], off = cur === d.v;
+    if (isDev) it.dev = off ? '' : d.v; else if (off) delete it.pick[d.k]; else it.pick[d.k] = d.v;
+    t.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+    if (!off) t.classList.add('on');
+    qiTouch(it); qiRefresh();
+  },
+  qichip: (d, t) => {
+    const {it} = qiCtx(), a = it[d.l], i = a.indexOf(d.k);
+    if (i >= 0) a.splice(i, 1); else a.push(d.k);
+    t.classList.toggle('on'); qiTouch(it); qiRefresh();
+  },
+  qipron: (d, t) => {
+    const {s} = qiCtx(); s.pron = d.v;
+    t.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+    t.classList.add('on'); save(); qiRefresh();
+  },
+  qiregen: () => { const {it} = qiCtx(); it.edited = false; it.text = ''; qiTouch(it); qiRefresh(); },
+  qiuse: d => {
+    if (ui.readonly) return toast('📦 Archiv – Änderungen werden nicht gespeichert');
+    const {c, s, q} = qiCtx(), text = $('#qi-text').value.trim();
+    if (text) { (c.qRemarks[q] ||= {})[s.id] = {text, mt: Date.now()}; save(); }
+    const next = c.students[c.students.findIndex(x => x.id === s.id) + 1];
+    if (d.n && next) { qiSheet(next.id); toast(text ? `Übernommen für ${firstName(s)}` : 'Kein Text – nichts übernommen'); }
+    else { qiBack(); if (text) toast('Bemerkung übernommen'); }
+  },
   qlistq: d => { if (!ui.readonly) qFlush(); ui.qlist = d.q; $('#sheetbody').scrollTop = 0; qListSheet(); },
   qxlsx: () => exportQuarterList(),
   qreset: d => {
@@ -2193,6 +2330,13 @@ const CHG = {
   quarter: el => { db.settings.quarters[+el.dataset.i][el.dataset.f] = el.value; save(); render(); },
   talk: el => { const c = curCls(), t = c.talk[el.dataset.s]; if (t) { t.text = el.value; save(); } },
   theme: el => { localStorage.setItem('notenbuch-theme', el.value); applyTheme(); },
+  qiextra: el => { const {it} = qiCtx(); it.extra = el.value; qiTouch(it); qiRefresh(); },
+  qifacts: el => { const {it} = qiCtx(); it.facts = el.checked; qiTouch(it); qiRefresh(); },
+  qitext: el => {
+    const {c, s, q, it} = qiCtx();
+    if (el.value.trim() === qiBuild(c, s, q, it).trim() && !it.edited) return;
+    it.edited = true; it.text = el.value; qiTouch(it); qiRefresh();
+  },
   qremark: el => {
     if (ui.readonly) return;
     const c = curCls(), m = c.qRemarks[ui.qlist] ||= {}, text = el.value.trim();
