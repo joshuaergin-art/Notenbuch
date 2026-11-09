@@ -198,8 +198,12 @@ html.dark .weeksep::after{border-color:#2a3a52}
   .rep td,.rep th{border:1px solid #888;padding:3px 6px;text-align:left;vertical-align:top}
   .rep th{background:#eee}
 }
-.ic{width:46px;height:46px;flex:none;padding:0;border-radius:10px;font-size:18px;line-height:1;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.ic span{font-size:9px;color:var(--muted)}
+.icrow{display:flex;gap:3px;flex:none}
+.st2 .grow{overflow-wrap:anywhere}
+.ic.on-dist{background:#ede9fe;border-color:#a78bfa}
+html.dark .ic.on-dist{background:#2e1f5e;border-color:#a78bfa}
+.ic{width:40px;height:46px;flex:none;padding:0;border-radius:10px;font-size:18px;line-height:1;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ic span{font-size:8.5px;color:var(--muted)}
 .ic.on-abs{background:#fee2e2;border-color:#f87171}
 .ic.on-mat{background:#ffedd5;border-color:#fb923c}
 .ic.on-note{background:#e0e7ff;border-color:#818cf8}
@@ -289,7 +293,7 @@ function defaults() {
         {id:'Q2', start:'2026-11-16', end:'2027-01-31'},
         {id:'Q3', start:'2027-02-01', end:'2027-04-15'},
         {id:'Q4', start:'2027-04-16', end:'2027-07-31'}],
-      holidays: [], oralWeight: 50, reminder: '16:00', remMode: 'after', remOffset: 15, warnMinGrades: 3, warnMat: 3, warnLate: 3, trackFrom: today()
+      holidays: [], oralWeight: 50, reminder: '16:00', remMode: 'after', remOffset: 15, warnMinGrades: 3, warnMat: 3, warnLate: 3, warnDist: 3, trackFrom: today()
     },
     classes: ['6b', '6d', '8 E-Kurs'].map(newClass),
     lessons: {}, examGrades: {}
@@ -334,7 +338,7 @@ function migrate(j) {
   j.examMt ||= {}; j.deleted ||= {};
   for (const k of ['lessons', 'exams', 'classes', 'students', 'archives']) j.deleted[k] ||= {};
   addNrwHolidays(j);
-  for (const L of Object.values(j.lessons)) { L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {}; }
+  for (const L of Object.values(j.lessons)) { L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {}; L.dist ||= {}; }
   return j;
 }
 function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v) return migrate(j); } catch (e) {} return migrate(defaults()); }
@@ -354,7 +358,7 @@ const curCls = () => cls(ui.cls) || db.classes[0];
 const quarterOf = d => (db.settings.quarters.find(q => q.start && q.end && d >= q.start && d <= q.end) || {}).id || null;
 const holidayOf = d => db.settings.holidays.find(h => h.start && d >= h.start && d <= (h.end || h.start));
 const isPlanned = (c, d, p) => c.timetable.some(t => t.wd === wd(d) && t.p === +p);
-const lessonDone = L => !!L && (!!L.status || ['grades', 'hw', 'absent', 'mat', 'notes', 'late'].some(f => Object.keys(L[f] || {}).length > 0));
+const lessonDone = L => !!L && (!!L.status || ['grades', 'hw', 'absent', 'mat', 'notes', 'late', 'dist'].some(f => Object.keys(L[f] || {}).length > 0));
 const lessonsOf = cid => Object.values(db.lessons).filter(L => L.classId === cid);
 
 function lessonsOn(d) {
@@ -404,30 +408,30 @@ function reminderTime(w) {
 function ensureLesson(key) {
   if (!db.lessons[key]) {
     const [classId, date, p] = key.split('|');
-    db.lessons[key] = {classId, date, period: +p, status: '', topic: '', grades: {}, hw: {}, absent: {}, mat: {}, notes: {}, late: {}};
+    db.lessons[key] = {classId, date, period: +p, status: '', topic: '', grades: {}, hw: {}, absent: {}, mat: {}, notes: {}, late: {}, dist: {}};
   }
   const L = db.lessons[key];
   L.mt = Date.now();   // Zeitpunkt der letzten Bearbeitung (fürs Zusammenführen)
-  L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {};
+  L.grades ||= {}; L.hw ||= {}; L.absent ||= {}; L.mat ||= {}; L.notes ||= {}; L.late ||= {}; L.dist ||= {};
   return L;
 }
 
 /* ================= Berechnung ================= */
 function quarterStats(c, s, q) {
-  let sum = 0, n = 0, hwY = 0, hwN = 0, abs = 0, mat = 0, late = 0; const items = [];
+  let sum = 0, n = 0, hwY = 0, hwN = 0, abs = 0, mat = 0, late = 0, dist = 0; const items = [];
   for (const L of lessonsOf(c.id)) {
     if (quarterOf(L.date) !== q) continue;
-    const g = L.grades[s.id], h = L.hw[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id];
+    const g = L.grades[s.id], h = L.hw[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id], st = (L.dist || {})[s.id];
     if (pts(g) != null) { sum += pts(g); n++; }
     if (h === 1) hwY++; else if (h === 0) hwN++;
-    if (a) abs++; if (m) mat++; if (l) late++;
-    if (g || a || m || note || l) items.push({d: L.date, g, a, m, note, l});
+    if (a) abs++; if (m) mat++; if (l) late++; if (st) dist++;
+    if (g || a || m || note || l || st) items.push({d: L.date, g, a, m, note, l, st});
   }
   items.sort((a, b) => a.d < b.d ? -1 : 1);
   const mean = n ? sum / n : null;
   const override = (c.overrides[s.id] || {})[q] || '';
   const final = override ? pts(override) : (mean == null ? null : rnd(mean));
-  return {mean, n, hwY, hwN, abs, mat, late, override, final, items};
+  return {mean, n, hwY, hwN, abs, mat, late, dist, override, final, items};
 }
 function calcStudent(c, s) {
   const r = {q: {}};
@@ -465,7 +469,7 @@ function calcStudent(c, s) {
     o.totCalc = o.tot; o.totOv = ovs['tot:' + q] || '';
     if (o.totOv) { o.tot = pts(o.totOv); o.oralOnly = o.writtenOnly = false; }
   }
-  r.abs = QS.reduce((a, q) => a + r.q[q].abs, 0); r.mat = QS.reduce((a, q) => a + r.q[q].mat, 0); r.late = QS.reduce((a, q) => a + r.q[q].late, 0);
+  r.abs = QS.reduce((a, q) => a + r.q[q].abs, 0); r.mat = QS.reduce((a, q) => a + r.q[q].mat, 0); r.late = QS.reduce((a, q) => a + r.q[q].late, 0); r.dist = QS.reduce((a, q) => a + r.q[q].dist, 0);
   return r;
 }
 const examsOfHJ = (c, i) => c.exams.filter(e => HJ[i].qs.includes(e.quarter)).sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : (a.date || '9') > (b.date || '9') ? 1 : a.title.localeCompare(b.title, 'de', {numeric: true}));
@@ -613,20 +617,21 @@ function vLesson() {
   if (!c.students.length) h += `<div class="card muted">Für ${esc(c.name)} sind noch keine Schüler:innen eingetragen (Einstellungen).</div>`;
   else h += `<div class="card slist">` + c.students.map((s, i) => {
     const g = L.grades[s.id] || '', st = q ? quarterStats(c, s, q) : null;
-    const abs = (L.absent || {})[s.id], mat = (L.mat || {})[s.id], note = (L.notes || {})[s.id], late = (L.late || {})[s.id];
+    const abs = (L.absent || {})[s.id], mat = (L.mat || {})[s.id], note = (L.notes || {})[s.id], late = (L.late || {})[s.id], dist = (L.dist || {})[s.id];
     const legacy = g && !smiley(g) ? ` · heute: ${g}` : '';
     return `<div class="st2${abs ? ' abs' : ''}">
       <div class="row"><span class="nr">${i + 1}</span><div class="grow"><b>${esc(s.name)}</b> ${tagBadges(s)}<span class="sub">${st && st.n ? `${q}: Ø ${gradeOf(st.mean)} (${fmtN(st.mean)} P., ${st.n}×)` : ''}${legacy}</span></div>
-        <button class="ic${abs ? ' on-abs' : ''}" data-act="abs" data-s="${s.id}">🤒<span>krank</span></button>
+        <div class="icrow"><button class="ic${abs ? ' on-abs' : ''}" data-act="abs" data-s="${s.id}">🤒<span>krank</span></button>
         <button class="ic${late ? ' on-late' : ''}" data-act="late" data-s="${s.id}">⏰<span>spät</span></button>
         <button class="ic${mat ? ' on-mat' : ''}" data-act="mat" data-s="${s.id}">🎒<span>Material</span></button>
-        <button class="ic${note ? ' on-note' : ''}" data-act="note" data-s="${s.id}">📝<span>Notiz</span></button></div>
+        <button class="ic${dist ? ' on-dist' : ''}" data-act="dist" data-s="${s.id}">📢<span>Störung</span></button>
+        <button class="ic${note ? ' on-note' : ''}" data-act="note" data-s="${s.id}">📝<span>Notiz</span></button></div></div>
       ${note ? `<div class="notetxt">📝 ${esc(note)}</div>` : ''}
       ${abs ? '<div class="small muted" style="padding:4px 0 2px 30px">war heute krank – keine Note</div>'
         : `<div class="smrow">${SMILEYS.map(([sg, e]) => `<button class="smb${g === sg ? ' on ' + gcls(sg) : ''}" data-act="smile" data-s="${s.id}" data-g="${sg}">${e}<span>${sg}</span></button>`).join('')}</div>`}
     </div>`;
   }).join('') + `</div>`;
-  h += `<p class="help">Smiley antippen = mündliche Tagesnote (😀 1 · 🙂 2 · 😐 3 · 🙁 4 · 😣 5). Nochmal antippen entfernt sie. 🤒 krank, ⏰ verspätet, 🎒 Material vergessen, 📝 Notiz zur Person.</p>`;
+  h += `<p class="help">Smiley antippen = mündliche Tagesnote (😀 1 · 🙂 2 · 😐 3 · 🙁 4 · 😣 5). Nochmal antippen entfernt sie. 🤒 krank, ⏰ verspätet, 🎒 Material vergessen, 📢 Störung des Unterrichts, 📝 Notiz zur Person.</p>`;
   if (!isPlanned(c, d, p)) h += `<button class="btn danger" data-act="dellesson">Diese zusätzliche Stunde löschen</button>`;
   return h;
 }
@@ -646,7 +651,7 @@ function vOverview() {
   h += `<div class="row wrap" style="margin-bottom:10px"><button class="btn sm" data-act="confsheet">📋 Notenliste Zeugniskonferenz</button><button class="btn sm" data-act="printallsheet">🖨 Berichte für alle drucken</button></div>`;
   const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
   const span = i => 2 + ex[i].length + 2 + 3;
-  let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th colspan="2">Ganzjahr</th><th colspan="4">Schuljahr gesamt</th></tr>`;
+  let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th colspan="2">Ganzjahr</th><th colspan="5">Schuljahr gesamt</th></tr>`;
   let head2 = `<tr><th class="nm">Name</th>`;
   HJ.forEach((hj, i) => {
     head2 += hj.qs.map(q => `<th>${q}<span class="sub">mündl.</span></th>`).join('');
@@ -654,7 +659,7 @@ function vOverview() {
     head2 += hj.qs.map(q => `<th>${q}<span class="sub">gesamt</span></th>`).join('');
     head2 += `<th>Ø mdl.<span class="sub">Pkt.</span></th><th>Ø schr.<span class="sub">Pkt.</span></th><th>${hj.short}<span class="sub">Note</span></th>`;
   });
-  head2 += `<th>Jahr<span class="sub">Note</span></th><th>🤒<span class="sub">krank</span></th><th>⏰<span class="sub">spät</span></th><th>🎒<span class="sub">Material</span></th><th>📝<span class="sub">Notizen</span></th></tr>`;
+  head2 += `<th>Jahr<span class="sub">Note</span></th><th>🤒<span class="sub">krank</span></th><th>⏰<span class="sub">spät</span></th><th>🎒<span class="sub">Material</span></th><th>📢<span class="sub">Störung</span></th><th>📝<span class="sub">Notizen</span></th></tr>`;
 
   const cols = []; // für Klassenschnitt
   const rows = c.students.map(s => {
@@ -672,12 +677,12 @@ function vOverview() {
     });
     put(r.year, r.year == null ? '' : `<b>${gradeOf(r.year)}${r.yearOv ? '*' : ''}</b><span class="sub">${r.yearOv ? 'ber. ' + (r.yearCalc == null ? '–' : fmtN(r.yearCalc, 1) + ' P.') : fmtN(r.year, 1) + ' P.'}</span>`, 'res', 'year');
     const nNotes = QS.reduce((a, q) => a + r.q[q].items.filter(it => it.note).length, 0);
-    out += `<td>${r.abs ? r.abs + '×' : ''}</td><td>${r.late ? r.late + '×' : ''}</td><td>${r.mat ? r.mat + '×' : ''}</td><td>${nNotes || ''}</td>`;
+    out += `<td>${r.abs ? r.abs + '×' : ''}</td><td>${r.late ? r.late + '×' : ''}</td><td>${r.mat ? r.mat + '×' : ''}</td><td>${r.dist ? r.dist + '×' : ''}</td><td>${nNotes || ''}</td>`;
     return `<tr data-act="student" data-s="${s.id}"><td class="nm">${esc(s.name)} ${tagBadges(s)}</td>${out}</tr>`;
   });
   let avgRow = `<tr class="avg"><td class="nm">Klassenschnitt</td>`;
   for (let k = 0; k < cols.length; k++) { const a = avg(cols[k] || []); avgRow += `<td>${a == null ? '' : `${fmtN(a, 1)}<span class="sub">${gradeOf(a)}</span>`}</td>`; }
-  avgRow += `<td></td><td></td><td></td><td></td></tr>`;
+  avgRow += `<td></td><td></td><td></td><td></td><td></td></tr>`;
   h += `<div class="tbl-wrap"><table class="ov"><thead>${head1}${head2}</thead><tbody>${rows.join('')}${avgRow}</tbody></table></div>`;
   h += `<p class="help">Mündliche Quartalsnote = Ø der Tagesnoten (gerundet). * = von dir festgelegt. Quartal gesamt = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % Klassenarbeiten des Quartals (Zwischenstand; ohne Klassenarbeit nur mündlich). Halbjahr = ${db.settings.oralWeight} % mündlich + ${100 - db.settings.oralWeight} % schriftlich, Jahr = Ø der gerundeten Halbjahre. <b>Note antippen = von Hand ändern</b>, Name antippen = Details.</p>`;
   return h;
@@ -805,8 +810,8 @@ function studentSheet(sid) {
       const o = r.q[q];
       h += `<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="row"><b class="grow">${q} mündlich</b>
         <select data-chg="override" data-s="${s.id}" data-q="${q}"><option value="">automatisch${o.mean != null ? ' (' + gradeOf(o.mean) + ')' : ''}</option>${GRADES.map(g => `<option ${o.override === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
-        <div class="small muted">${o.n ? `Ø ${fmtN(o.mean, 2)} Punkte aus ${o.n} Noten` : 'keine Tagesnoten'}${o.abs ? ` · ${o.abs}× krank` : ''}${o.late ? ` · ${o.late}× verspätet` : ''}${o.mat ? ` · ${o.mat}× Material vergessen` : ''}</div>
-        <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div>
+        <div class="small muted">${o.n ? `Ø ${fmtN(o.mean, 2)} Punkte aus ${o.n} Noten` : 'keine Tagesnoten'}${o.abs ? ` · ${o.abs}× krank` : ''}${o.late ? ` · ${o.late}× verspätet` : ''}${o.mat ? ` · ${o.mat}× Material vergessen` : ''}${o.dist ? ` · ${o.dist}× Störung` : ''}</div>
+        <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.st ? ' 📢' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div>
         ${o.tot != null ? `<div class="small" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)"><b>${q} gesamt: ${gradeOf(o.tot)}${o.totOv ? '*' : ''}</b> <button class="btn sm" data-act="ovcell" data-s="${s.id}" data-f="tot:${q}">✎</button> <span class="muted">${o.totOv ? `(von dir festgelegt, berechnet: ${o.totCalc == null ? '–' : gradeOf(o.totCalc)})` : o.oralOnly ? '(nur mündlich – keine Klassenarbeit in diesem Quartal)' : o.writtenOnly ? '(nur schriftlich – noch keine mündliche Note)' : `(${fmtN(o.tot, 2)} P. = mündlich ${gradeOf(o.final)} + ${o.exList.join(', ')})`}</span></div>` : ''}</div>`;
     }
     const ex = examsOfHJ(c, i);
@@ -938,7 +943,8 @@ function vSettings() {
   h += `<h3>Hinweise</h3><div class="card"><div class="row wrap">
     <div class="field"><label>Warnen bei weniger als … Tagesnoten im Quartal</label><input type="number" min="0" style="width:80px" value="${S.warnMinGrades}" data-chg="set" data-f="warnMinGrades"></div>
     <div class="field"><label>… × Material vergessen im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnMat}" data-chg="set" data-f="warnMat"></div>
-    <div class="field"><label>… × verspätet im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnLate}" data-chg="set" data-f="warnLate"></div></div>
+    <div class="field"><label>… × verspätet im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnLate}" data-chg="set" data-f="warnLate"></div>
+    <div class="field"><label>… × Störung im Halbjahr</label><input type="number" min="0" style="width:80px" value="${S.warnDist}" data-chg="set" data-f="warnDist"></div></div>
     <p class="help">0 = Hinweis ausgeschaltet. Außerdem wird immer gewarnt, wenn jemand mündlich oder im Halbjahr auf 5+ oder schlechter steht.</p></div>`;
   h += `<h3>KI für Gesprächsnotizen (optional)</h3><div class="card">` + (aiCfg && aiCfg.on
     ? `<div style="margin-bottom:8px">✨ KI ist eingeschaltet (Claude Opus 5.5 von Anthropic).</div><button class="btn sm danger" data-act="aioff">KI ausschalten & Schlüssel löschen</button>`
@@ -1474,38 +1480,38 @@ function exportXlsx() {
     const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
     const head = ['Nr.', 'Name'];
     HJ.forEach((hj, i) => {
-      for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} gesamt (Pkt.)`, `${q} gesamt Note`, `${q} krank`, `${q} verspätet`, `${q} Material`);
+      for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} gesamt (Pkt.)`, `${q} gesamt Note`, `${q} krank`, `${q} verspätet`, `${q} Material`, `${q} Störungen`);
       for (const e of ex[i]) head.push(`${e.title} (${e.quarter}${e.date ? ', ' + fmtDL(e.date) : ''})`);
       head.push(`Ø mündl. ${hj.short} (Pkt.)`, `Ø schriftl. ${hj.short} (Pkt.)`, `${hj.short} (Pkt.)`, `${hj.short} Note`);
     });
-    head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt', 'Merkmale');
+    head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt', 'Störungen gesamt', 'Merkmale');
     const rows = [head];
     c.students.forEach((s, si) => {
       const r = calcStudent(c, s), row = [si + 1, s.name];
       HJ.forEach((hj, i) => {
-        for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', r2(o.totCalc), o.tot == null ? '' : gradeOf(o.tot) + (o.totOv ? '*' : '') + (o.oralOnly ? ' (nur mdl.)' : ''), o.abs || '', o.late || '', o.mat || ''); }
+        for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', r2(o.totCalc), o.tot == null ? '' : gradeOf(o.tot) + (o.totOv ? '*' : '') + (o.oralOnly ? ' (nur mdl.)' : ''), o.abs || '', o.late || '', o.mat || '', o.dist || ''); }
         for (const e of ex[i]) row.push((db.examGrades[e.id] || {})[s.id] || '');
         row.push(r2(r.h[i].mdl), r2(r.h[i].schr), r2(r.h[i].calc), gradeOf(r.h[i].tot) + (r.h[i].ov ? '*' : ''));
       });
-      row.push(r2(r.yearCalc), gradeOf(r.year) + (r.yearOv ? '*' : ''), r.abs || '', r.late || '', r.mat || '', tagText(s));
+      row.push(r2(r.yearCalc), gradeOf(r.year) + (r.yearOv ? '*' : ''), r.abs || '', r.late || '', r.mat || '', r.dist || '', tagText(s));
       rows.push(row);
     });
     rows.push([]); const note = ['', '* = von der Lehrkraft festgelegte Note (Punkte-Spalten zeigen den berechneten Wert). Stand: ' + new Date(db.updated).toLocaleString('de-DE')]; rows.push(note);
     sheets.push({name: sname(c.name), xml: sheetXml(rows, [5, 24, ...Array(head.length - 2).fill(11)], [2, 1])});
   }
   // Rohdaten: alle Tagesnoten
-  const raw = [['Lerngruppe', 'Datum', 'Stunde', 'Quartal', 'Name', 'Note', 'Punkte', 'krank', 'verspätet', 'Material vergessen', 'Notiz zur Person', 'Thema der Stunde']];
+  const raw = [['Lerngruppe', 'Datum', 'Stunde', 'Quartal', 'Name', 'Note', 'Punkte', 'krank', 'verspätet', 'Material vergessen', 'Störung', 'Notiz zur Person', 'Thema der Stunde']];
   const Ls = Object.values(db.lessons).sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.period - b.period);
   for (const L of Ls) {
     const c = cls(L.classId); if (!c) continue;
-    if (L.status) { raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', L.status === 'ausfall' ? '(Ausfall)' : '(ohne Noten)', '', '', '', '', '', '', L.topic || '']); continue; }
+    if (L.status) { raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', L.status === 'ausfall' ? '(Ausfall)' : '(ohne Noten)', '', '', '', '', '', '', '', L.topic || '']); continue; }
     for (const s of c.students) {
-      const g = L.grades[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id];
-      if (!g && !a && !m && !note && !l) continue;
-      raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', s.name, g || '', g ? pts(g) : '', a ? 'ja' : '', l ? 'ja' : '', m ? 'ja' : '', note || '', L.topic || '']);
+      const g = L.grades[s.id], a = (L.absent || {})[s.id], m = (L.mat || {})[s.id], note = (L.notes || {})[s.id], l = (L.late || {})[s.id], st = (L.dist || {})[s.id];
+      if (!g && !a && !m && !note && !l && !st) continue;
+      raw.push([c.name, fmtDL(L.date), L.period, quarterOf(L.date) || '', s.name, g || '', g ? pts(g) : '', a ? 'ja' : '', l ? 'ja' : '', m ? 'ja' : '', st ? 'ja' : '', note || '', L.topic || '']);
     }
   }
-  sheets.push({name: sname('Tagesnoten'), xml: sheetXml(raw, [12, 11, 7, 8, 24, 7, 7, 7, 9, 10, 40, 30], [0, 1])});
+  sheets.push({name: sname('Tagesnoten'), xml: sheetXml(raw, [12, 11, 7, 8, 24, 7, 7, 7, 9, 10, 8, 40, 30], [0, 1])});
 
   const files = [
     {name: '[Content_Types].xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`},
@@ -1593,6 +1599,7 @@ function offlineTalkNotes(c, s) {
     if (d <= -3) weak.push(`Klassenarbeiten verschlechtert (${exams[0].g} → ${exams[exams.length - 1].g})`); }
   if (r.mat >= 2) weak.push(`${r.mat}× Material vergessen`);
   if (r.late >= 2) weak.push(`${r.late}× verspätet`);
+  if (r.dist >= 2) weak.push(`${r.dist}× den Unterricht gestört`);
   if (r.abs >= 3) weak.push(`${r.abs}× krank gefehlt`);
   if (r.mat === 0 && r.late === 0 && nGrades >= 3) strong.push('zuverlässig: Material immer dabei, pünktlich');
 
@@ -1607,6 +1614,7 @@ function offlineTalkNotes(c, s) {
   if (oral != null && oral < 7) { talk.push(`Wie erleben Sie ${fn} zu Hause – traut sich ${fn}, vor anderen zu sprechen?`); home.push('beim Abendessen vom Schultag oder einem Buch erzählen lassen'); }
   if (writ != null && writ < 7) { talk.push('Gemeinsam schauen: Woran lag es in den Klassenarbeiten (Rechtschreibung, Textverständnis, Zeit)?'); home.push('regelmäßig (täglich 15 Min.) lesen, kurze Texte schreiben und gemeinsam überarbeiten'); }
   if (r.mat >= 2) { talk.push('Material ansprechen: Gibt es eine feste Routine zum Ranzenpacken?'); home.push('Ranzen am Vorabend nach Stundenplan packen'); }
+  if (r.dist >= 2) talk.push('Unterrichtsstörungen ansprechen: In welchen Situationen passiert es, und was könnte helfen?');
   if (r.late >= 2) talk.push('Verspätungen ansprechen: Gibt es Gründe (Schulweg, Bus)?');
   if (r.abs >= 3) talk.push('Fehlzeiten: Wie wird verpasster Stoff nachgeholt?');
   if (nGrades < 3) talk.push('Wenige mündliche Noten – eigene Eindrücke aus dem Unterricht ergänzen.');
@@ -1659,8 +1667,8 @@ function aiPayload(c, s) {
   const {r, exams, notes} = studentFacts(c, s);
   const grade = (c.name.match(/\d+/) || [''])[0];
   const L = [`Fach: Deutsch${grade ? `, Jahrgangsstufe ${grade}` : ''}, Schuljahr ${db.settings.year}`, '', 'Mündliche Mitarbeit je Quartal:'];
-  for (const q of QS) { const o = r.q[q]; if (!o.n && !o.abs && !o.mat && !o.late && !o.override) continue;
-    L.push(`- ${q}: ${o.final != null ? `Note ${gradeOf(o.final)}${o.override ? ' (von der Lehrkraft festgelegt)' : ''}` : 'keine Note'}${o.n ? `, Ø ${fmtN(o.mean, 1)} Punkte aus ${o.n} Tagesnoten` : ''}; krank ${o.abs}×, verspätet ${o.late}×, Material vergessen ${o.mat}×`);
+  for (const q of QS) { const o = r.q[q]; if (!o.n && !o.abs && !o.mat && !o.late && !o.dist && !o.override) continue;
+    L.push(`- ${q}: ${o.final != null ? `Note ${gradeOf(o.final)}${o.override ? ' (von der Lehrkraft festgelegt)' : ''}` : 'keine Note'}${o.n ? `, Ø ${fmtN(o.mean, 1)} Punkte aus ${o.n} Tagesnoten` : ''}; krank ${o.abs}×, verspätet ${o.late}×, Material vergessen ${o.mat}×, Unterricht gestört ${o.dist}×`);
     const g = o.items.filter(it => it.g).map(it => `${fmtDS(it.d)} ${it.g}`); if (g.length) L.push(`  Tagesnoten: ${g.join(', ')}`); }
   L.push('', 'Klassenarbeiten:'); L.push(...(exams.length ? exams.map(x => `- ${x.e.title} (${x.e.quarter}${x.e.date ? ', ' + fmtDS(x.e.date) : ''}): ${x.g}`) : ['- noch keine']));
   L.push('', 'Halbjahres-/Jahresnoten:'); HJ.forEach((hj, i) => L.push(`- ${hj.name}: ${r.h[i].tot != null ? `${gradeOf(r.h[i].tot)} (${fmtN(r.h[i].tot, 1)} Punkte; mündlich ${fmtN(r.h[i].mdl, 1)}, schriftlich ${fmtN(r.h[i].schr, 1)})` : 'noch offen'}`));
@@ -1744,11 +1752,12 @@ function warnings(onlyCid) {
     if (onlyCid && c.id !== onlyCid) continue;
     for (const s of c.students) {
       const r = calcStudent(c, s), o = r.q[q];
-      const mat = hj.qs.reduce((a, x) => a + r.q[x].mat, 0), late = hj.qs.reduce((a, x) => a + r.q[x].late, 0);
+      const mat = hj.qs.reduce((a, x) => a + r.q[x].mat, 0), late = hj.qs.reduce((a, x) => a + r.q[x].late, 0), dist = hj.qs.reduce((a, x) => a + r.q[x].dist, 0);
       if (o.final != null && o.final <= 3) out.push({c, s, icon: '📉', txt: `steht mündlich im ${q} auf ${gradeOf(o.final)}`});
       else if (r.h[hi].tot != null && rnd(r.h[hi].tot) <= 3) out.push({c, s, icon: '📉', txt: `steht im ${hj.short} auf ${gradeOf(r.h[hi].tot)}`});
       if (+S.warnMinGrades > 0 && elapsed >= 0.5 && o.n < +S.warnMinGrades) out.push({c, s, icon: '🔍', txt: `hat im ${q} erst ${o.n} Tagesnote${o.n === 1 ? '' : 'n'}`});
       if (+S.warnMat > 0 && mat >= +S.warnMat) out.push({c, s, icon: '🎒', txt: `hat im ${hj.name} ${mat}× Material vergessen`});
+      if (+S.warnDist > 0 && dist >= +S.warnDist) out.push({c, s, icon: '📢', txt: `hat im ${hj.name} ${dist}× den Unterricht gestört`});
       if (+S.warnLate > 0 && late >= +S.warnLate) out.push({c, s, icon: '⏰', txt: `kam im ${hj.name} ${late}× zu spät`});
     }
   }
@@ -1767,8 +1776,8 @@ function reportHtml(c, s, opt) {
   const r = calcStudent(c, s), dash = x => (x == null || x === '') ? '–' : x;
   let h = `<div class="rep"><h1>${esc(s.name)}</h1><div>Deutsch · ${esc(c.name)} · Schuljahr ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')}</div>`;
   if (opt.tags && tagText(s)) h += `<div style="margin-top:4px"><b>Merkmale:</b> ${esc(tagText(s))}</div>`;
-  h += `<h2>Mündliche Mitarbeit</h2><table><tr><th>Quartal</th><th>Note</th><th>Tagesnoten</th><th>krank</th><th>verspätet</th><th>Material vergessen</th></tr>` +
-    QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td><b>${dash(o.final == null ? '' : gradeOf(o.final))}</b></td><td>${o.n}</td><td>${o.abs}</td><td>${o.late}</td><td>${o.mat}</td></tr>`; }).join('') + `</table>`;
+  h += `<h2>Mündliche Mitarbeit</h2><table><tr><th>Quartal</th><th>Note</th><th>Tagesnoten</th><th>krank</th><th>verspätet</th><th>Material vergessen</th><th>Störungen</th></tr>` +
+    QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td><b>${dash(o.final == null ? '' : gradeOf(o.final))}</b></td><td>${o.n}</td><td>${o.abs}</td><td>${o.late}</td><td>${o.mat}</td><td>${o.dist}</td></tr>`; }).join('') + `</table>`;
   h += `<h2>Quartalsnoten gesamt (Zwischenstand)</h2><table><tr><th>Quartal</th><th>mündlich</th><th>Klassenarbeiten</th><th>Quartal gesamt</th></tr>` +
     QS.map(q => { const o = r.q[q]; return `<tr><td>${q}</td><td>${dash(o.final == null ? '' : gradeOf(o.final))}</td><td>${dash(o.exList.join(', '))}</td><td><b>${dash(o.tot == null ? '' : gradeOf(o.tot))}</b>${o.oralOnly ? ' (nur mündlich)' : ''}</td></tr>`; }).join('') + `</table>`;
   const ex = c.exams.slice().sort((a, b) => (a.date || '9') < (b.date || '9') ? -1 : 1);
@@ -1905,6 +1914,7 @@ const ACT = {
     else { if (L.grades[d.s] && !confirm('Die Tagesnote wird entfernt, weil die Person krank war. Fortfahren?')) return; L.absent[d.s] = 1; delete L.grades[d.s]; L.status = ''; }
     save(); render(); },
   mat: d => { const L = ensureLesson(ui.lesson); if (L.mat[d.s]) delete L.mat[d.s]; else { L.mat[d.s] = 1; L.status = ''; } save(); render(); },
+  dist: d => { const L = ensureLesson(ui.lesson); if (L.dist[d.s]) delete L.dist[d.s]; else { L.dist[d.s] = 1; L.status = ''; } save(); render(); },
   late: d => { const L = ensureLesson(ui.lesson); if (L.late[d.s]) delete L.late[d.s]; else { L.late[d.s] = 1; L.status = ''; } save(); render(); },
   random: () => randomPick(),
   picksmile: d => { const L = ensureLesson(ui.lesson); L.grades[d.s] = d.g; L.status = ''; save(); closeSheet(); render(); toast(`${smiley(d.g)} eingetragen`); },
@@ -2090,7 +2100,7 @@ const CHG = {
     for (const s of removed) if (!c.students.some(x => x.id === s.id)) db.deleted.students[s.id] = Date.now();
     save(); render(); toast(`${c.students.length} Schüler:innen gespeichert`);
   },
-  set: el => { const f = el.dataset.f; db.settings[f] = f === 'oralWeight' ? Math.min(100, Math.max(0, +el.value || 0)) : ['remOffset', 'warnMinGrades', 'warnMat', 'warnLate'].includes(f) ? Math.max(0, +el.value || 0) : el.value; save(); render(); },
+  set: el => { const f = el.dataset.f; db.settings[f] = f === 'oralWeight' ? Math.min(100, Math.max(0, +el.value || 0)) : ['remOffset', 'warnMinGrades', 'warnMat', 'warnLate', 'warnDist'].includes(f) ? Math.max(0, +el.value || 0) : el.value; save(); render(); },
   quarter: el => { db.settings.quarters[+el.dataset.i][el.dataset.f] = el.value; save(); render(); },
   talk: el => { const c = curCls(), t = c.talk[el.dataset.s]; if (t) { t.text = el.value; save(); } },
   theme: el => { localStorage.setItem('notenbuch-theme', el.value); applyTheme(); },
@@ -2100,7 +2110,7 @@ const CHG = {
 };
 
 /* ---------- Rückgängig: merkt sich den Stand vor jedem Eintrag ---------- */
-const UNDO_ACTS = new Set(['smile', 'abs', 'mat', 'late', 'picksmile', 'savenote', 'status', 'setgrade']);
+const UNDO_ACTS = new Set(['smile', 'abs', 'mat', 'late', 'dist', 'picksmile', 'savenote', 'status', 'setgrade']);
 let undoState = null;
 function captureUndo(act) {
   const clone = x => x == null ? null : JSON.parse(JSON.stringify(x));
@@ -2118,6 +2128,7 @@ function undoMessage(act, d, u) {
     case 'smile': case 'picksmile': return L.grades && L.grades[sid] ? `${smiley(L.grades[sid])} für ${n}` : `Smiley bei ${n} entfernt`;
     case 'abs': return on('absent') ? `${n}: krank` : `${n}: nicht mehr krank`;
     case 'late': return on('late') ? `${n}: verspätet` : `${n}: Verspätung entfernt`;
+    case 'dist': return on('dist') ? `${n}: Störung vermerkt` : `${n}: Störung entfernt`;
     case 'mat': return on('mat') ? `${n}: Material vergessen` : `${n}: Material-Eintrag entfernt`;
     case 'savenote': return on('notes') ? `Notiz bei ${n} gespeichert` : `Notiz bei ${n} gelöscht`;
     case 'status': return L.status === 'ausfall' ? 'Stunde als Ausfall markiert' : L.status === 'ohne' ? 'Stunde ohne Noten markiert' : 'Markierung entfernt';
