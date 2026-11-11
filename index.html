@@ -1496,7 +1496,7 @@ function sheetXml(rows, widths, freeze, opts = {}) {
     x += `</row>`;
   });
   x += `</sheetData>`;
-  if (opts.landscape) x += `<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>`;
+  if (opts.landscape) x += `<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>`;
   return x + `</worksheet>`;
 }
 function exportXlsx() {
@@ -1553,7 +1553,7 @@ function downloadXlsx(sheets, filename) {
   const files = [
     {name: '[Content_Types].xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`},
     {name: '_rels/.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
-    {name: 'xl/workbook.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`},
+    {name: 'xl/workbook.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xe(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets>${sheets.some(s => s.titles) ? `<definedNames>${sheets.map((s, i) => s.titles ? `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${xe(s.name.replace(/'/g, "''"))}'!${s.titles}</definedName>` : '').join('')}</definedNames>` : ''}</workbook>`},
     {name: 'xl/_rels/workbook.xml.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
     {name: 'xl/styles.xml', text: styles},
     ...sheets.map((s, i) => ({name: `xl/worksheets/sheet${i + 1}.xml`, text: s.xml}))
@@ -1880,7 +1880,7 @@ function conferenceRows(c, which) {
 function exportConference(which) {
   const c = curCls(), {rows, cols, label} = conferenceRows(c, which);
   const widths = [5, 26, ...Array(cols - 3).fill(9.5), 42];
-  downloadXlsx([{name: label, xml: sheetXml(rows, widths, [2, 4], {landscape: true})}], `Notenliste_${safeFile(c.name)}_${safeFile(label)}_${safeFile(db.settings.year)}.xlsx`);
+  downloadXlsx([{name: label, titles: '$4:$4', xml: sheetXml(rows, widths, [2, 4], {landscape: true})}], `Notenliste_${safeFile(c.name)}_${safeFile(label)}_${safeFile(db.settings.year)}.xlsx`);
   closeSheet(); toast('Excel-Datei erstellt');
 }
 
@@ -1914,7 +1914,7 @@ function qListSheet() {
   const scroller = $('#sheetbody'), y = scroller.scrollTop;
   showSheet(`<div class="row"><h2 class="grow">📄 Quartalsliste ${esc(c.name)}</h2><button class="btn sm" data-act="closesheet">✕</button></div>
     <div class="pills">${QS.map(x => `<button class="${x === q ? 'on' : ''}" data-act="qlistq" data-q="${x}">${x}</button>`).join('')}</div>
-    <div class="row wrap" style="margin-bottom:10px"><button class="btn pri sm" data-act="qxlsx">📊 Als Excel herunterladen</button><span class="small muted" id="qlist-open"></span></div>
+    <div class="row wrap" style="margin-bottom:10px"><button class="btn pri sm" data-act="qxlsx">📊 Excel</button><button class="btn pri sm" data-act="qpdf">📄 PDF</button><span class="small muted" id="qlist-open"></span></div>
     <p class="help" style="margin-top:0">Die Bemerkung ist aus Fehlzeiten, Material, Störungen und deinen Tagesnotizen vorgeschlagen und frei änderbar. Gelb = keine Informationen, bitte selbst eintragen.</p>
     ${c.students.map((s, i) => { const g = qGrades(c, s, q), r = qRemark(c, s.id, q); return `<div class="qrow">
       <div class="row"><span class="nr">${i + 1}</span><b class="grow">${esc(s.name)}</b><span class="small">mündl. <b>${g.mdl}</b> · schriftl. <b>${g.schr}</b> · Quartal <b>${g.tot}</b></span></div>
@@ -1926,12 +1926,27 @@ function qListSheet() {
 function qFlush() {
   document.querySelectorAll('[data-chg="qremark"]').forEach(el => { if (el.value.trim() !== qRemark(curCls(), el.dataset.s, ui.qlist).text) CHG.qremark(el); });
 }
+function printQuarterList() {
+  if (!ui.readonly) qFlush();
+  const c = curCls(), q = ui.qlist;
+  const rows = c.students.map((s, i) => { const g = qGrades(c, s, q); return `<tr><td class="c">${i + 1}</td><td>${esc(s.name)}</td><td class="c">${g.mdl}</td><td class="c">${g.schr}</td><td class="c"><b>${g.tot}</b></td><td>${esc(qRemark(c, s.id, q).text)}</td></tr>`; }).join('');
+  $('#print').innerHTML = `<style>@page{size:A4 landscape;margin:10mm 12mm}
+    .ql h1{font-size:15pt;margin:0}.ql .sub{font-size:9pt;margin:2px 0 8px}
+    .ql table{border-collapse:collapse;width:100%;font-size:9.5pt;line-height:1.3}
+    .ql th,.ql td{border:1px solid #888;padding:3px 5px;vertical-align:top;text-align:left}
+    .ql th{background:#e5e7eb}.ql td.c,.ql th.c{text-align:center}
+    .ql thead{display:table-header-group}.ql tr{break-inside:avoid;page-break-inside:avoid}</style>
+    <div class="ql"><h1>Quartalsbeurteilung Deutsch – ${esc(c.name)} – ${q}</h1><div class="sub">Schuljahr ${esc(db.settings.year)} · Stand ${new Date().toLocaleDateString('de-DE')}</div>
+    <table><colgroup><col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col></colgroup>
+    <thead><tr><th class="c">Nr.</th><th>Name</th><th class="c">Mündlich</th><th class="c">Schriftlich</th><th class="c">Quartalsnote</th><th>Bemerkung</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  setTimeout(() => window.print(), 100);
+}
 function exportQuarterList() {
   if (!ui.readonly) qFlush();
   const c = curCls(), q = ui.qlist, H = v => ({v, s: XS.head}), C = v => ({v, s: XS.center}), T = v => ({v, s: XS.text});
   const rows = [[{v: `Quartalsbeurteilung Deutsch – ${c.name} – ${q}`, s: XS.title}], [`Schuljahr ${db.settings.year} · Stand ${new Date().toLocaleDateString('de-DE')}`], [], [H('Nr.'), H('Name'), H('Mündlich'), H('Schriftlich'), H('Quartalsnote'), H('Bemerkung')]];
   c.students.forEach((s, i) => { const g = qGrades(c, s, q); rows.push([C(i + 1), T(s.name), C(g.mdl), C(g.schr), {v: g.tot, s: XS.center}, T(qRemark(c, s.id, q).text)]); });
-  downloadXlsx([{name: q, xml: sheetXml(rows, [5, 28, 11, 11, 13, 66], [2, 4])}], `Quartalsliste_${safeFile(c.name)}_${q}_${safeFile(db.settings.year)}.xlsx`);
+  downloadXlsx([{name: q, titles: '$4:$4', xml: sheetXml(rows, [5, 26, 10, 10, 12, 74], [2, 4], {landscape: true})}], `Quartalsliste_${safeFile(c.name)}_${q}_${safeFile(db.settings.year)}.xlsx`);
   toast('Excel-Datei erstellt');
 }
 
@@ -2193,6 +2208,7 @@ const ACT = {
   },
   qlistq: d => { if (!ui.readonly) qFlush(); ui.qlist = d.q; $('#sheetbody').scrollTop = 0; qListSheet(); },
   qxlsx: () => exportQuarterList(),
+  qpdf: () => printQuarterList(),
   qreset: d => {
     const c = curCls(), m = c.qRemarks[ui.qlist] ||= {};
     m[d.s] = {auto: true, mt: Date.now()}; save(); qListSheet();
