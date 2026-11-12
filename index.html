@@ -72,6 +72,10 @@ table.ov td.calc{background:#f9fafb;color:#374151}
 table.ov td.res{background:#ecfdf5}
 table.ov td.qres{background:#f0f9ff}
 table.ov td.edit{min-width:44px;cursor:pointer}
+table.ov th.testh{background:#f3f4f6;color:#4b5563;cursor:pointer;font-style:italic}
+table.ov td.testc{background:#f9fafb;color:#4b5563}
+html.dark table.ov th.testh{background:#232f44;color:#cbd5e1}
+html.dark table.ov td.testc{background:#18233a;color:#cbd5e1}
 table.ov tbody tr{cursor:pointer}
 table.ov tbody tr:hover td{background:#eef2ff}
 table.ov tr.avg td{background:#f1f5f9!important;font-weight:600;cursor:default}
@@ -288,7 +292,7 @@ function defaultExams() {
   return [['KA 1','Q1'],['KA 2','Q2'],['KA 3','Q2'],['KA 4','Q3'],['KA 5','Q4'],['KA 6','Q4']]
     .map(([t, q]) => ({id: uid(), title: t, quarter: q, date: '', weight: 1}));
 }
-function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), overrides: {}, ovMt: {}, qRemarks: {}, qItems: {}, talk: {}, protocols: {}}; }
+function newClass(name) { return {id: uid(), name, students: [], timetable: [], exams: defaultExams(), tests: [], overrides: {}, ovMt: {}, qRemarks: {}, qItems: {}, talk: {}, protocols: {}}; }
 
 // Schülermerkmale – sensible Daten: werden NIE an die KI gesendet und nur auf Wunsch gedruckt
 const TAGS = [
@@ -348,7 +352,7 @@ function migrate(j) {
   const d = defaults();
   j.settings = Object.assign(d.settings, j.settings || {});
   j.classes = j.classes || []; j.lessons = j.lessons || {}; j.examGrades = j.examGrades || {};
-  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.overrides ||= {}; c.ovMt ||= {}; c.qRemarks ||= {}; c.qItems ||= {}; c.talk ||= {}; c.protocols ||= {}; }
+  for (const c of j.classes) { c.students ||= []; c.timetable ||= []; c.exams ||= []; c.tests ||= []; c.overrides ||= {}; c.ovMt ||= {}; c.qRemarks ||= {}; c.qItems ||= {}; c.talk ||= {}; c.protocols ||= {}; }
   j.yearId ||= 'y:' + j.settings.year;   // eindeutig je Schuljahr, auf allen Geräten gleich
   j.archives ||= [];
   j.examMt ||= {}; j.deleted ||= {};
@@ -664,14 +668,15 @@ function vOverview() {
   if (!c.students.length) return h + `<div class="card muted">Noch keine Schüler:innen eingetragen.</div>`;
   const ws = warnings(c.id);
   if (ws.length) h += `<details class="card" style="padding:8px 12px"><summary style="cursor:pointer">⚠ <b>${ws.length}</b> ${ws.length > 1 ? 'Hinweise' : 'Hinweis'} in ${esc(c.name)}</summary>${warnList(ws)}</details>`;
-  h += `<div class="row wrap" style="margin-bottom:10px"><button class="btn sm" data-act="qlist">📄 Quartalsliste (Excel)</button><button class="btn sm" data-act="confsheet">📋 Notenliste Zeugniskonferenz (Excel)</button><button class="btn sm" data-act="printallsheet">🖨 Berichte für alle drucken</button></div>`;
-  const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)];
-  const span = i => 2 + ex[i].length + 2 + 3;
-  let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th colspan="2">Ganzjahr</th><th colspan="5">Schuljahr gesamt</th></tr>`;
+  h += `<div class="row wrap" style="margin-bottom:10px"><button class="btn sm pri" data-act="testadd">➕ Test</button><button class="btn sm" data-act="qlist">📄 Quartalsliste (Excel)</button><button class="btn sm" data-act="confsheet">📋 Notenliste Zeugniskonferenz (Excel)</button><button class="btn sm" data-act="printallsheet">🖨 Berichte für alle drucken</button></div>`;
+  const ex = [examsOfHJ(c, 0), examsOfHJ(c, 1)], ts = [testsOfHJ(c, 0), testsOfHJ(c, 1)];
+  const span = i => 2 + ex[i].length + ts[i].length + 2 + 3;
+  let head1 = `<tr class="hj"><th class="nm"></th><th colspan="${span(0)}">1. Halbjahr</th><th colspan="${span(1)}">2. Halbjahr</th><th>Ganzjahr</th><th colspan="5">Schuljahr gesamt</th></tr>`;
   let head2 = `<tr><th class="nm">Name</th>`;
   HJ.forEach((hj, i) => {
     head2 += hj.qs.map(q => `<th>${q}<span class="sub">mündl.</span></th>`).join('');
     head2 += ex[i].map(e => `<th>${esc(e.title)}<span class="sub">${e.quarter}${e.date ? ' · ' + fmtDL(e.date).slice(0, 6) : ''}</span></th>`).join('');
+    head2 += ts[i].map(t => `<th class="testh" data-act="testedit" data-t="${t.id}">${esc(t.title)} ✎<span class="sub">${t.quarter}${t.date ? ' · ' + fmtDL(t.date).slice(0, 6) : ''} · zählt nicht</span></th>`).join('');
     head2 += hj.qs.map(q => `<th>${q}<span class="sub">gesamt</span></th>`).join('');
     head2 += `<th>Ø mdl.<span class="sub">Pkt.</span></th><th>Ø schr.<span class="sub">Pkt.</span></th><th>${hj.short}<span class="sub">Note</span></th>`;
   });
@@ -685,6 +690,7 @@ function vOverview() {
       for (const q of hj.qs) { const o = r.q[q];
         put(o.final, o.final == null ? '' : `<b>${gradeOf(o.final)}${o.override ? '*' : ''}</b><span class="sub">${o.n ? `Ø ${fmtN(o.mean)} · ${o.n}×` : 'manuell'}</span>`, '', 'q:' + q); }
       for (const e of ex[i]) { const g = (db.examGrades[e.id] || {})[s.id]; put(pts(g), g ? `<b>${g}</b>` : '', '', 'exam:' + e.id); }
+      for (const t of ts[i]) { const g = (db.examGrades[t.id] || {})[s.id]; put(pts(g), g || '', 'testc', 'test:' + t.id); }
       for (const q of hj.qs) { const o = r.q[q];
         put(o.tot, o.tot == null ? '' : `<b>${gradeOf(o.tot)}${o.totOv ? '*' : ''}</b><span class="sub">${o.totOv ? 'ber. ' + (o.totCalc == null ? '–' : gradeOf(o.totCalc)) : o.oralOnly ? 'nur mdl.' : o.writtenOnly ? 'nur schr.' : fmtN(o.tot, 2) + ' P.'}</span>`, 'qres', 'tot:' + q); }
       put(r.h[i].mdl, fmtN(r.h[i].mdl, 2), 'calc');
@@ -757,6 +763,20 @@ function viewArchive(id) {
 }
 function exitArchive() { ui.readonly = null; db = load(); ui.cls = db.classes[0]?.id; ui.tab = 'einst'; ui.lesson = null; ui.examId = null; render(); }
 
+/* ---------- Tests (eigene Spalten, ohne Einfluss auf die Noten) ---------- */
+const testsOfHJ = (c, i) => (c.tests || []).filter(t => HJ[i].qs.includes(t.quarter)).sort((a, b) => a.quarter !== b.quarter ? (a.quarter < b.quarter ? -1 : 1) : ((a.date || '9') < (b.date || '9') ? -1 : (a.date || '9') > (b.date || '9') ? 1 : 0));
+function testSheet(id) {
+  const c = curCls(), t = id ? c.tests.find(x => x.id === id) : null, q0 = quarterOf(today()) || 'Q1';
+  ui.testEdit = id || null;
+  const title = t ? t.title : 'Test ' + (c.tests.filter(x => x.quarter === q0).length + 1);
+  showSheet(`<div class="row"><h2 class="grow">${t ? '✎ Test bearbeiten' : '➕ Test hinzufügen'}</h2><button class="btn sm" data-act="closesheet">✕</button></div>
+    <div class="small muted" style="margin-bottom:10px">Ein Test bekommt in der Übersicht eine eigene Spalte. Er zählt <b>nicht</b> in Quartals-, Halbjahres- oder Jahresnote.</div>
+    <div class="row wrap"><div class="field grow"><label>Bezeichnung</label><input id="ts-title" value="${esc(title)}"></div>
+    <div class="field"><label>Quartal</label><select id="ts-q">${QS.map(q => `<option ${(t ? t.quarter : q0) === q ? 'selected' : ''}>${q}</option>`).join('')}</select></div>
+    <div class="field"><label>Datum (optional)</label><input type="date" id="ts-date" value="${t ? t.date : ''}"></div></div>
+    <div class="row"><button class="btn pri grow" data-act="testsave">${t ? 'Speichern' : 'Spalte hinzufügen'}</button>${t ? '<button class="btn danger" data-act="testdel">Test löschen</button>' : ''}</div>`);
+}
+
 /* ---------- Noten von Hand festlegen (pädagogisches Maß) ---------- */
 function setOverride(c, sid, key, g) {
   const o = c.overrides[sid] ||= {};
@@ -770,6 +790,9 @@ function ovPicker(sid, f) {
   if (f.startsWith('exam:')) {
     const e = c.exams.find(x => x.id === f.slice(5)); isExam = true;
     title = e.title; cur = (db.examGrades[e.id] || {})[sid] || '';
+  } else if (f.startsWith('test:')) {
+    const t = c.tests.find(x => x.id === f.slice(5)); isExam = true;
+    title = `${t.title} (Test, zählt nicht)`; cur = (db.examGrades[t.id] || {})[sid] || '';
   } else if (f.startsWith('q:')) {
     const o = r.q[f.slice(2)]; title = `${f.slice(2)} mündlich`; cur = o.override; calc = o.mean == null ? '' : `${gradeOf(o.mean)} (${fmtN(o.mean, 2)} P.)`;
   } else if (f.startsWith('tot:')) {
@@ -828,6 +851,7 @@ function studentSheet(sid) {
         <select data-chg="override" data-s="${s.id}" data-q="${q}"><option value="">automatisch${o.mean != null ? ' (' + gradeOf(o.mean) + ')' : ''}</option>${GRADES.map(g => `<option ${o.override === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
         <div class="small muted">${o.n ? `Ø ${fmtN(o.mean, 2)} Punkte aus ${o.n} Noten` : 'keine Tagesnoten'}${o.abs ? ` · ${o.abs}× krank` : ''}${o.late ? ` · ${o.late}× verspätet` : ''}${o.mat ? ` · ${o.mat}× Material vergessen` : ''}${o.dist ? ` · ${o.dist}× Störung` : ''}</div>
         <div class="dl">${o.items.map(it => `<span>${fmtD(it.d)} ${it.g ? `${smiley(it.g)} <b>${it.g}</b>` : ''}${it.a ? ' 🤒' : ''}${it.l ? ' ⏰' : ''}${it.m ? ' 🎒' : ''}${it.st ? ' 📢' : ''}${it.note ? ` 📝 <i>${esc(it.note)}</i>` : ''}</span>`).join('')}</div>
+        ${c.tests.filter(t => t.quarter === q).length ? `<div class="small muted" style="margin-top:4px">Tests (zählen nicht): ${c.tests.filter(t => t.quarter === q).map(t => `${esc(t.title)}: <b>${(db.examGrades[t.id] || {})[s.id] || '–'}</b>`).join(' · ')}</div>` : ''}
         ${o.tot != null ? `<div class="small" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--line)"><b>${q} gesamt: ${gradeOf(o.tot)}${o.totOv ? '*' : ''}</b> <button class="btn sm" data-act="ovcell" data-s="${s.id}" data-f="tot:${q}">✎</button> <span class="muted">${o.totOv ? `(von dir festgelegt, berechnet: ${o.totCalc == null ? '–' : gradeOf(o.totCalc)})` : o.oralOnly ? '(nur mündlich – keine Klassenarbeit in diesem Quartal)' : o.writtenOnly ? '(nur schriftlich – noch keine mündliche Note)' : `(${fmtN(o.tot, 2)} P. = mündlich ${gradeOf(o.final)} + ${o.exList.join(', ')})`}</span></div>` : ''}</div>`;
     }
     const ex = examsOfHJ(c, i);
@@ -1205,6 +1229,8 @@ function mergeDb(localDb, incomingDb) {
     c.students = c.students.filter(s => !del.students[s.id]);
     for (const e of o.exams) if (!c.exams.some(x => x.id === e.id)) c.exams.push(e);
     c.exams = c.exams.filter(e => !del.exams[e.id]);
+    for (const t of o.tests) { const i = c.tests.findIndex(x => x.id === t.id); if (i < 0) c.tests.push(t); else if ((t.mt || 0) > (c.tests[i].mt || 0)) c.tests[i] = t; }
+    c.tests = c.tests.filter(t => !del.exams[t.id]);
     for (const [sid, v] of Object.entries(o.overrides)) if (!c.overrides[sid]) c.overrides[sid] = v;
     // Festgelegte Noten: pro Note gewinnt die zuletzt vorgenommene Änderung (auch das Zurücksetzen auf „automatisch“)
     for (const k of new Set([...Object.keys(n.ovMt), ...Object.keys(o.ovMt)])) {
@@ -1509,6 +1535,7 @@ function exportXlsx() {
     HJ.forEach((hj, i) => {
       for (const q of hj.qs) head.push(`${q} mündl.`, `${q} Ø Pkt.`, `${q} Anz.`, `${q} gesamt (Pkt.)`, `${q} gesamt Note`, `${q} krank`, `${q} verspätet`, `${q} Material`, `${q} Störungen`);
       for (const e of ex[i]) head.push(`${e.title} (${e.quarter}${e.date ? ', ' + fmtDL(e.date) : ''})`);
+      for (const t of testsOfHJ(c, i)) head.push(`${t.title} (${t.quarter}, Test – zählt nicht)`);
       head.push(`Ø mündl. ${hj.short} (Pkt.)`, `Ø schriftl. ${hj.short} (Pkt.)`, `${hj.short} (Pkt.)`, `${hj.short} Note`);
     });
     head.push('Jahr (Pkt.)', 'Jahresnote', 'krank gesamt', 'verspätet gesamt', 'Material vergessen gesamt', 'Störungen gesamt', 'Merkmale');
@@ -1518,6 +1545,7 @@ function exportXlsx() {
       HJ.forEach((hj, i) => {
         for (const q of hj.qs) { const o = r.q[q]; row.push(o.final == null ? '' : gradeOf(o.final) + (o.override ? '*' : ''), r2(o.mean), o.n || '', r2(o.totCalc), o.tot == null ? '' : gradeOf(o.tot) + (o.totOv ? '*' : '') + (o.oralOnly ? ' (nur mdl.)' : ''), o.abs || '', o.late || '', o.mat || '', o.dist || ''); }
         for (const e of ex[i]) row.push((db.examGrades[e.id] || {})[s.id] || '');
+        for (const t of testsOfHJ(c, i)) row.push((db.examGrades[t.id] || {})[s.id] || '');
         row.push(r2(r.h[i].mdl), r2(r.h[i].schr), r2(r.h[i].calc), gradeOf(r.h[i].tot) + (r.h[i].ov ? '*' : ''));
       });
       row.push(r2(r.yearCalc), gradeOf(r.year) + (r.yearOv ? '*' : ''), r.abs || '', r.late || '', r.mat || '', r.dist || '', tagText(s));
@@ -2250,11 +2278,26 @@ const ACT = {
     if (!confirm(`Archiv ${a.year} endgültig löschen?\n\nTipp: Vorher mit 💾 als Datei sichern.`)) return;
     db.archives = db.archives.filter(x => x.id !== a.id); db.deleted.archives[a.id] = Date.now(); save(); render();
   },
+  testadd: () => { if (ui.readonly) return toast('📦 Archiv – nur lesen'); testSheet(); },
+  testedit: d => { if (ui.readonly) return toast('📦 Archiv – nur lesen'); testSheet(d.t); },
+  testsave: () => {
+    const c = curCls(), date = $('#ts-date').value, q = date && quarterOf(date) ? quarterOf(date) : $('#ts-q').value;
+    const title = $('#ts-title').value.trim() || 'Test', edit = ui.testEdit;
+    if (edit) Object.assign(c.tests.find(x => x.id === edit), {title, quarter: q, date, mt: Date.now()});
+    else c.tests.push({id: uid(), title, quarter: q, date, mt: Date.now()});
+    save(); closeSheet(); render(); toast(edit ? 'Test gespeichert' : `Spalte „${title}“ im ${q} hinzugefügt`);
+  },
+  testdel: () => {
+    const c = curCls(), t = c.tests.find(x => x.id === ui.testEdit); if (!t) return;
+    if (!confirm(`„${t.title}“ mit allen eingetragenen Noten löschen?`)) return;
+    c.tests = c.tests.filter(x => x.id !== t.id); delete db.examGrades[t.id]; db.deleted.exams[t.id] = Date.now();
+    save(); closeSheet(); render();
+  },
   ovcell: d => ovPicker(d.s, d.f),
   ovset: d => {
     if (ui.readonly) return toast('📦 Archiv – Änderungen werden nicht gespeichert');
     const {sid, f, back} = ui.ovPick, c = curCls();
-    if (f.startsWith('exam:')) {
+    if (f.startsWith('exam:') || f.startsWith('test:')) {
       const id = f.slice(5), m = db.examGrades[id] ||= {};
       if (d.g) m[sid] = d.g; else delete m[sid];
       db.examMt[id] = Date.now();
